@@ -599,7 +599,7 @@ c. 手动触发compact
 默认情况下，每个 Table 起初只有一个 Region，随着数据的不断写入，Region 会自动进行拆分。刚拆分时，两个子 Region 都位于当前的 Region Server，但处于负载均衡的考虑，HMaster 有可能会将某个 Region 转移给其他的 Region Server。  
 Region Split 时机：  
 (1) 当 1 个region中的某个Store下所有StoreFile的总大小超过hbase.hregion.max.filesize，该 Region 就会进行拆分（0.94 版本之前）。  
-(2) 当 1 个 region 中 的某 个 Store 下所有 StoreFile 的总大小超过 Min(R^2 × "hbase.hregion.memstore.flush.size", hbase.hregion.max.filesize")，该 Region 就会进行拆分，其中 R 为当前 Region Server 中属于该 Table 的个数（0.94 版本之后）。
+(2) 当 1 个 region 中 的某 个 Store 下所有 StoreFile 的总大小超过 Min(R^2 × "hbase.hregion.memstore.flush.size", hbase.hregion.max.filesize")，该 Region 就会进行拆分，其中 R 为当前 Region Server 中属于该 Table 的个数（0.94 版本之后）。  
 (3) 每次切分不一定都一样大：涉及到**middleKey**查询
 
 ## rowkey设计 ##

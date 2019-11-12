@@ -45,7 +45,7 @@ numChildren = 1
 9）ephemeralOwner- 如果是临时节点，这个是znode拥有者的session id。如果不是临时节点则是0  
 10）dataLength- znode的数据长度  
 11）numChildren - znode子节点数量
-3. **dataVersion**用于实现乐观锁机制中的写入检验, 在`PrepRequestProcessor`类中, 每次处理`setDataRequest`请求时, 会进行如下的版本检查:
+3. **dataVersion**用于实现乐观锁机制中的写入检验, 类似CAS操作, 在`PrepRequestProcessor`类中, 每次处理`setDataRequest`请求时, 会进行如下的版本检查:
  ```
     version = setDataRequest.getVersion();
     int currentVersion = nodeRecord.stat.getVersion();
@@ -87,7 +87,7 @@ numChildren = 1
  - 基于ZooKeeper的选择：如果本地NameNode是健康的，且ZKFC发现没有其它的节点当前持有znode锁，它将为自己获取该锁。如果成功，则它已经赢得了选择，并负责运行故障转移进程以使它的本地NameNode为Active。故障转移进程与前面描述的手动故障转移相似，首先如果必要保护之前的现役NameNode，然后本地NameNode转换为Active状态。  
 3. 图解  
 ![](https://i.imgur.com/KayKSGx.png)
-4. 搭建HDFS-HA, 对比3中的图解, 可知每个组件的作用  
+4. 搭建HDFS-HA, 对照3中的图解, 可知每个组件的作用  
 ![](https://i.imgur.com/kctcQtS.png)
 5. 补充说明
  - JournaNode是一个轻量级的元数据文件系统, 可以和其他组件混部 

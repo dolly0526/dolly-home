@@ -558,7 +558,7 @@ public class MyThread {
 4. 查看字节码文件: javap -v xx.class
 
 ## 栈 ##
-1. 栈管运行, 堆管存储
+1. **栈管运行, 堆管存储**
 2. 栈也叫栈内存，主管Java程序的运行，是在线程创建时创建，它的生命期是跟随线程的生命期，线程结束栈内存也就释放，对于栈来说**不存在垃圾回收问题**，只要线程一结束该栈就Over，生命周期和线程一致，是线程私有的。8种基本类型的变量+对象的引用变量+实例方法都是在函数的栈内存中分配。
 3. 栈帧中主要保存 3 类数据：  
 本地变量（Local Variables）: 输入参数和输出参数以及方法内的变量；  
@@ -1419,7 +1419,30 @@ b. 枚举根节点做可达性分析(根搜索路径)
 a. -Xint: 解释执行  
 b. -Xcomp: 第一次使用就编译成本地代码  
 c. -Xmixed: 混合模式  
- - XX参数
+ - XX参数  
 a. Boolean类型: -XX:+或者-某个属性值 ("+"表示开启, "-"表示关闭)  
-b. KV设值类型  
+b. KV设值类型: -XX:属性key=属性value  
 c. jinfo举例, 如何查看当前运行程序的配置
+ ```
+jps -l   ->    java进程编号
+jinfo -flag 具体参数 java进程编号   ->   查看某个参数
+jinfo -flags java进程编号   ->   查看全部参数
+ ```
+d. 坑题: 如何解释-Xms和-Xmx?  
+ ```
+这两个参数仍为**XX参数**:  
+-Xms == -XX:InitialHeapSize  
+-Xmx == -XX:MaxHeapSize
+ ```  
+2. 查看初始默认值  
+ - `java -XX:+PrintFlagsInitial` -> 查看初始参数
+ - `java -XX:+PrintFlagsFinal -version` -> 查看修改后的参数 (:=表示被修改过的参数, =表示初)始值
+ - `java -XX:+PrintCommandLineFlags -version` -> 查看常用参数(尤其是看最后一个参数: 垃圾回收器)
+3. 常用参数
+ - -Xms: 初始堆内存大小, 默认为物理内存1/64; 等价于-XX:InitialHeapSize
+ - -Xmx: 最大分配堆内存,默认为物理内存的1/4; 等价于-XX:MaxHeapSize
+ - -Xss: 设置单个线程栈的大小, 一般默认为512k~1024k (取决于jdk版本和平台, 64位linux + jdk8 = 1024k, 若为0则表示默认值); 等价于-XX:ThreadStackSize
+ - -Xmn: 设置年轻代大小
+ - -XX:MetaspaceSize: 设置元空间大小  
+![](https://i.imgur.com/UwoSQgA.png)
+ - -XX:+PrintGCDetails: 输出详细GC收集日志信息
