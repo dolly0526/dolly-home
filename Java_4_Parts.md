@@ -587,7 +587,7 @@ Permanent Space  			**永久区**  		Perm
 注: jdk1.8中没有永久区了, 改为了**元空间** (Meta Space)
 2. (Java7之前) 一个JVM实例只存在一个堆内存，堆内存的大小是可以调节的。类加载器读取了类文件后，需要把类、方法、常变量放到堆内存中，保存所有引用类型的真实信息，以方便执行器执行。  
 ![](https://i.imgur.com/s0MfSaI.png)
-3. **新生区**是类的诞生、成长、消亡的区域，一个类在这里产生，应用，最后被垃圾回收器收集，结束生命。新生区又分为两部分： 伊甸区（Eden space）和幸存者区（Survivor pace） ，所有的类都是在伊甸区被new出来的。幸存区有两个： 0区（Survivor 0 space）和1区（Survivor 1 space）。当伊甸园的空间用完时，程序又需要创建对象，JVM的垃圾回收器将对伊甸园区进行垃圾回收(Minor GC)，将伊甸园区中的不再被其他对象所引用的对象进行销毁。然后将伊甸园中的剩余对象移动到幸存 0区。若幸存 0区也满了，再对该区进行垃圾回收，然后移动到 1 区。那如果1 区也满了呢？再移动到养老区。若养老区也满了，那么这个时候将产生MajorGC（FullGC），进行养老区的内存清理。若养老区执行了Full GC之后发现依然无法进行对象的保存，就会产生OOM异常**OutOfMemoryError**。
+3. **新生区**是类的诞生、成长、消亡的区域，一个类在这里产生，应用，最后被垃圾回收器收集，结束生命。新生区又分为两部分： 伊甸区（Eden space）和幸存者区（Survivor pace） ，所有的类都是在伊甸区被new出来的。幸存区有两个： 0区（Survivor 0 space）和1区（Survivor 1 space）。当伊甸园的空间用完时，程序又需要创建对象，JVM的垃圾回收器将对伊甸园区进行垃圾回收(Minor GC)，将伊甸园区中的不再被其他对象所引用的对象进行销毁。然后将伊甸园中的剩余对象移动到幸存 0区。若幸存 0区也满了，再对该区进行垃圾回收，然后移动到 1 区。那如果1 区也满了呢？再移动到养老区。若养老区也满了，那么这个时候将产生MajorGC（FullGC），进行养老区的内存清理。若**养老区**执行了**Full GC**之后发现依然无法进行对象的保存，就会产生OOM异常**OutOfMemoryError**。
 4. 如果出现java.lang.OutOfMemoryError: Java heap space 异常，说明Java虚拟机的堆内存不够。原因有二：  
 （1）Java虚拟机的堆内存设置不够，可以通过参数-Xms、-Xmx来调整。  
 （2）代码中创建了大量大对象，并且长时间不能被垃圾收集器收集（存在被引用）。
@@ -612,7 +612,7 @@ c. SurvivorTo和SurvivorFrom互换
 1. gc模型  
 **jdk7:** ![](https://i.imgur.com/X6VxUDR.png)  
 **jdk8:** ![](https://i.imgur.com/bOpYvSR.png)
-2. 堆基础参数, 如果要手动配置, 一般Xmx和Xms大小相同, 防止内存不稳定  
+2. 堆基础参数, 如果要手动配置, 一般Xmx和Xms大小**相同**, 防止内存不稳定  
 ![](https://i.imgur.com/o2Szxp8.png)
 3. GC收集日志信息  
 ![](https://i.imgur.com/9mgweu3.png)  
@@ -1445,4 +1445,9 @@ d. 坑题: 如何解释-Xms和-Xmx?
  - -Xmn: 设置年轻代大小
  - -XX:MetaspaceSize: 设置元空间大小  
 ![](https://i.imgur.com/UwoSQgA.png)
- - -XX:+PrintGCDetails: 输出详细GC收集日志信息
+ - -XX:+PrintGCDetails: 输出详细GC收集日志信息(要求会看GC日志)
+ - -XX:SurvivorRatio: 设置新生代中eden和s0/s1空间的比例, 默认-XX:SurvivorRatio=8 (s0和s1相同)
+ - -XX:NewRatio: 配置老年代与年轻代在堆结构的占比, 默认-XX:NewRatio=2, 新生代1老年代2
+ - -XX:MaxTenuringThreshold: 设置垃圾最大年龄 (必须在0到15之间)
+
+##  ##
