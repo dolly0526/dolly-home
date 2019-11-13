@@ -1450,4 +1450,23 @@ d. 坑题: 如何解释-Xms和-Xmx?
  - -XX:NewRatio: 配置老年代与年轻代在堆结构的占比, 默认-XX:NewRatio=2, 新生代1老年代2
  - -XX:MaxTenuringThreshold: 设置垃圾最大年龄 (必须在0到15之间)
 
-##  ##
+## 强软弱虚 ##
+1. 强引用(默认): 死了都不收  
+![](https://i.imgur.com/GboZyTK.png)
+2. 软引用: 内存足够的前提下不收, 内存不够就收, 尽量避免OOM  
+![](https://i.imgur.com/GVK8eaH.png)
+3. 弱引用: 不管内存够不够, 只要GC就收  
+![](https://i.imgur.com/jjVuHvU.png)
+4. 软引用和弱引用的适用场景
+ - MyBatis底层大量使用软引用和弱引用
+ - 维护缓存系统  
+![](https://i.imgur.com/JrpSm3A.png)
+ - WeakHashMap
+> Hash table based implementation of the Map interface, with weak keys. An entry in a WeakHashMap will automatically be removed when its key is no longer in ordinary use. More precisely, the presence of a mapping for a given key will not prevent the key from being discarded by the garbage collector, that is, made finalizable, finalized, and then reclaimed. When a key has been discarded its entry is effectively removed from the map, so this class behaves somewhat differently from other Map implementations. 
+5. 引用队列  
+![](https://i.imgur.com/vcnedyz.png)
+6. 虚引用简介: 类似Spring的后置通知  
+![](https://i.imgur.com/VpRpawT.png)
+7. 总结  
+![](https://i.imgur.com/o0R7d93.png)  
+![](https://i.imgur.com/eQTJLx8.png)
