@@ -1470,3 +1470,37 @@ d. 坑题: 如何解释-Xms和-Xmx?
 7. 总结  
 ![](https://i.imgur.com/o0R7d93.png)  
 ![](https://i.imgur.com/eQTJLx8.png)
+
+## OOM ##
+1. java.lang.StackOverflowError  
+ - 代码案例
+ ```
+public class StackOverflowErrorDemo {
+    public static void main(String[] args) {
+        stackOverflowError();
+    }
+
+    private static void stackOverflowError() {
+        stackOverflowError();
+    }
+}
+ ```
+ - 爆栈是**错误**, 不是异常  
+![](https://i.imgur.com/imCFUr2.png)
+2. java.lang.OutOfMemoryError: Java heap space
+ ```
+public class JavaHeapSpaceDemo {
+    public static void main(String[] args) {
+        String s = "dolly";
+        while (true) {
+            s += new Random().nextInt(11111111);
+            s.intern(); //也是错误
+        }
+    }
+}
+ ```
+3. java.lang.OutOfMemoryError: GC overhead limit exceeded
+
+4. java.lang.OutOfMemoryError: Direct buffer memory
+5. java.lang.OutOfMemoryError: Unable to create new native thread
+6. java.lang.OutOfMemoryError: Metaspace
