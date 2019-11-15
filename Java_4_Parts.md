@@ -484,6 +484,62 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
 1. 并发版HashMap, 报错相同, 解决办法类似
 2. 待补充
 
+## 三个线程循环打印 ##
+```
+public class Condition06 {
+    public static void main(String[] args) {
+
+        ShareData data = new ShareData();
+        Lock lock = data.getLock();
+        Condition c1 = lock.newCondition();
+        Condition c2 = lock.newCondition();
+        Condition c3 = lock.newCondition();
+
+        new Thread(() -> {
+            for (int i = 0; i < 5; i++) data.print(c1, c2, 0, 1, 5);
+        }, "A").start();
+        new Thread(() -> {
+            for (int i = 0; i < 5; i++) data.print(c2, c3, 1, 2, 10);
+        }, "B").start();
+        new Thread(() -> {
+            for (int i = 0; i < 5; i++) data.print(c3, c1, 2, 0, 15);
+        }, "C").start();
+    }
+}
+
+class ShareData {
+    //A:1, B:2, C:3
+    private int num = 0;
+    @Getter
+    private Lock lock = new ReentrantLock();
+
+    /**
+     * @param c1 该线程绑定的对象
+     * @param c2 下一个线程绑定的对象
+     * @param p  控制开始的标记
+     * @param q  控制结束的标记
+     * @param n  打印次数
+     */
+    public void print(Condition c1, Condition c2, int p, int q, int n) {
+        lock.lock();
+        try {
+            //1.判断
+            while (num != p) c1.await();
+            //2.干活
+            for (int i = 0; i < n; i++)
+                System.out.println(Thread.currentThread().getName() + "\t" + i);
+            //3.通知(如何通知第2个)
+            num = q;
+            c2.signal();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
 ## synchronized ##
 0. 参考资料:  
  - [Java并发编程：Synchronized及其实现原理](https://www.cnblogs.com/paddix/p/5367116.html)  
@@ -1499,8 +1555,25 @@ public class JavaHeapSpaceDemo {
     }
 }
  ```
-3. java.lang.OutOfMemoryError: GC overhead limit exceeded
+3. java.lang.OutOfMemoryError: GC overhead limit exceeded  
+![](https://i.imgur.com/AMcyOd6.png)  
+ ```
+public class GcOverheadDemo {
+    //-Xms10m -Xmx10m -XX:+PrintGCDetails -XX:MaxDirectMemorySize=5m
+    public static void main(String[] args) {
+        int i = 0;
+        List<String> list = new ArrayList<>();
+        try {
+            while (true) list.add(String.valueOf(++i).intern());
+        } catch (Exception e) {
+            System.out.println("===== i: " + i + " =====");
+            e.printStackTrace();
+            throw e;
+        }
+    }
+}
+ ```
+4. java.lang.OutOfMemoryError: Direct buffer memory  
 
-4. java.lang.OutOfMemoryError: Direct buffer memory
 5. java.lang.OutOfMemoryError: Unable to create new native thread
 6. java.lang.OutOfMemoryError: Metaspace
