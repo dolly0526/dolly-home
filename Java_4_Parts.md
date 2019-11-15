@@ -348,27 +348,26 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
 2019/8/5 17:05:52 
 
 
-# 并发 #
+# 高并发 #
 2019/10/3 14:20:01 
 
-## 基础 ##
-### 进程/线程 ###
+## 进程/线程 ##
 进程: 每个任务(例如.exe)会起一个进程  
 线程: 轻量级的进程, 每个进程可以起多个线程
 
 **注意:**  
-1. 线程的启动不是在start()方法后立刻执行, 由底层CPU调度  
-2. 并发编程套路:  
+1. 线程的启动不是在start()方法后立刻执行, 由底层CPU调度
+2. 一个Thread类只能start一次, 否则会报**IllegalThreadStateException**
+3. 并发编程套路:  
  - 在高内聚低耦合的前提下, 线程操作资源类  
  - 判断/干活/通知  
  - 防止虚假唤醒
 
-### 并发/并行 ###
+## 并发/并行 ##
 并发: 多个线程抢同一份资源, 偏重于多个任务交替执行  
 并行: 多件事情同时发生, 真正的同时执行
 
-## JUC ##
-### CopyOnWriteArrayList ###
+## CopyOnWriteArrayList ##
 1. ArrayList是线程不安全的
  ```
 	/**
@@ -426,7 +425,7 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
 	}
  ```
 
-### CopyOnWriteArraySet ###
+## CopyOnWriteArraySet ##
 1. HashSet也是线程不安全的, 报错和ArrayList相同, 解决办法类似
 2. CopyOnWriteArraySet底层是CopyOnWriteArrayList
  ```
@@ -480,7 +479,7 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
 	}
  ```
 
-### ConcurrentHashMap ###
+## ConcurrentHashMap ##
 1. 并发版HashMap, 报错相同, 解决办法类似
 2. 待补充
 
@@ -1463,10 +1462,10 @@ b. 枚举根节点做可达性分析(根搜索路径)
  - case, 引用不可达的对象将会被回收  
 ![](https://i.imgur.com/mthJYw9.png)
  - Java中可以作为GC Roots的对象  
-> 虚拟机栈(栈帧中的局部变量区, 也叫做局部变量表)中引用的对象  
-> 方法区中的类静态属性引用的对象  
-> 方法区中常量引用的对象  
-> 本地方法栈中native方法(JNI)引用的对象
+> ① 虚拟机栈(栈帧中的局部变量区, 也叫做局部变量表)中引用的对象  
+> ② 方法区中的类静态属性引用的对象  
+> ③ 方法区中常量引用的对象  
+> ④ 本地方法栈中native方法(JNI)引用的对象
 
 ## JVM参数 ##
 1. JVM参数类型  
@@ -1550,7 +1549,7 @@ public class JavaHeapSpaceDemo {
         String s = "dolly";
         while (true) {
             s += new Random().nextInt(11111111);
-            s.intern(); //也是错误
+            s.intern(); //OOM也是错误
         }
     }
 }
@@ -1574,6 +1573,17 @@ public class GcOverheadDemo {
 }
  ```
 4. java.lang.OutOfMemoryError: Direct buffer memory  
-
-5. java.lang.OutOfMemoryError: Unable to create new native thread
+![](https://i.imgur.com/YIEuQON.png)  
+![](https://i.imgur.com/4iyIAeg.png)
+ ```
+public class DirectBufferMemoryDemo {
+    public static void main(String[] args) {
+        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(6 * 1024 * 1024);
+    }
+}
+ ```
+5. java.lang.OutOfMemoryError: Unable to create new native thread  
+![](https://i.imgur.com/LZczu6Y.png)  
+![](https://i.imgur.com/zO6KFp3.png)
 6. java.lang.OutOfMemoryError: Metaspace
+![](https://i.imgur.com/Fw3VwNF.png)
