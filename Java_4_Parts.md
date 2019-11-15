@@ -346,6 +346,7 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
 
 # 基础 #
 2019/8/5 17:05:52 
+## IO/NIO ##
 
 
 # 高并发 #
@@ -642,7 +643,7 @@ Permanent Space  			**永久区**  		Perm
 注: jdk1.8中没有永久区了, 改为了**元空间** (Meta Space)
 2. (Java7之前) 一个JVM实例只存在一个堆内存，堆内存的大小是可以调节的。类加载器读取了类文件后，需要把类、方法、常变量放到堆内存中，保存所有引用类型的真实信息，以方便执行器执行。  
 ![](https://i.imgur.com/s0MfSaI.png)
-3. **新生区**是类的诞生、成长、消亡的区域，一个类在这里产生，应用，最后被垃圾回收器收集，结束生命。新生区又分为两部分： 伊甸区（Eden space）和幸存者区（Survivor pace） ，所有的类都是在伊甸区被new出来的。幸存区有两个： 0区（Survivor 0 space）和1区（Survivor 1 space）。当伊甸园的空间用完时，程序又需要创建对象，JVM的垃圾回收器将对伊甸园区进行垃圾回收(Minor GC)，将伊甸园区中的不再被其他对象所引用的对象进行销毁。然后将伊甸园中的剩余对象移动到幸存 0区。若幸存 0区也满了，再对该区进行垃圾回收，然后移动到 1 区。那如果1 区也满了呢？再移动到养老区。若养老区也满了，那么这个时候将产生MajorGC（FullGC），进行养老区的内存清理。若**养老区**执行了**Full GC**之后发现依然无法进行对象的保存，就会产生OOM异常**OutOfMemoryError**。
+3. **新生区**是类的诞生、成长、消亡的区域，一个类在这里产生，应用，最后被垃圾回收器收集，结束生命。新生区又分为两部分： 伊甸区（Eden space）和幸存者区（Survivor space） ，所有的类都是在伊甸区被new出来的。幸存区有两个： 0区（Survivor 0 space）和1区（Survivor 1 space）。当伊甸园的空间用完时，程序又需要创建对象，JVM的垃圾回收器将对伊甸园区进行垃圾回收(Minor GC)，将伊甸园区中的不再被其他对象所引用的对象进行销毁。然后将伊甸园中的剩余对象移动到幸存 0区。若幸存 0区也满了，再对该区进行垃圾回收，然后移动到 1 区。那如果1 区也满了呢？再移动到养老区。若养老区也满了，那么这个时候将产生MajorGC（FullGC），进行养老区的内存清理。若**养老区**执行了**Full GC**之后发现依然无法进行对象的保存，就会产生OOM异常**OutOfMemoryError**。
 4. 如果出现java.lang.OutOfMemoryError: Java heap space 异常，说明Java虚拟机的堆内存不够。原因有二：  
 （1）Java虚拟机的堆内存设置不够，可以通过参数-Xms、-Xmx来调整。  
 （2）代码中创建了大量大对象，并且长时间不能被垃圾收集器收集（存在被引用）。
@@ -1587,3 +1588,133 @@ public class DirectBufferMemoryDemo {
 ![](https://i.imgur.com/zO6KFp3.png)
 6. java.lang.OutOfMemoryError: Metaspace
 ![](https://i.imgur.com/Fw3VwNF.png)
+
+## 垃圾回收机制 ##
+1. GC算法是内存回收的方法论, 垃圾收集器就是算法的落地实现
+2. 因为目前为止还没有完美的收集器出现, 更加没有万能的收集器, 只是针对具体情况选择最合适的收集器, 进行分代收集
+3. 四种垃圾回收方式  
+![](https://i.imgur.com/aZgLKxD.png)
+ - 串行垃圾收集器(Serial): 它为单线程环境设计且只使用一个线程进行垃圾回收, 会暂停所有的用户线程, 所以不适合服务器环境
+ - 并行垃圾收集器(Parallel): 多个垃圾收集线程并行工作, 此时用户线程是暂停的, 适用于科学计算/大数据处理/首台处理等弱交互场景
+ - 并发垃圾收集器(CMS): 用户线程和垃圾收集线程同时执行(不一定是并行, 可能交替执行), 不需要停顿用户线程; 互联网公司用的最多, 适用于对响应时间有要求的场景  
+![](https://i.imgur.com/RoTnfZX.png)
+ - G1垃圾收集器: 将堆内存分割成不同的区域, 然后并发地对其进行垃圾回收
+4. 如何查看默认的垃圾收集器?
+ ```
+java -XX:+PrintCommandLineFlags -version
+jdk8默认: -XX:+UseParallelGC
+ ```
+5. jvm默认的垃圾收集器有哪些?  
+ - 主要有: UseSerialGC, UseParallelGC, UseConcMarkSweepGC, UseParNewGC, UseParallelOldGC, UseG1GC; 在jdk8中, UseSerialOldGC已经被淘汰, 无法显式设置, 只作为CMS的备选方案
+ - 源码  
+![](https://i.imgur.com/aHSgUIk.png)
+6. 七大垃圾收集器  
+![](https://i.imgur.com/owysw0Y.png)  
+![](https://i.imgur.com/fcftbqI.png)
+7. 如何选择垃圾收集器?  
+![](https://i.imgur.com/ZzesACz.png)  
+![](https://i.imgur.com/i9Ijl9k.png)
+
+### 垃圾收集器详解 ###
+- 部分参数预先说明  
+![](https://i.imgur.com/8WjFe54.png)
+- Server/Clint模式
+![](https://i.imgur.com/U1fy6jy.png)
+#### 新生代 ####
+1. 串行GC(Serial/Serial Copying)   
+![](https://i.imgur.com/YCWue8I.png)  
+![](https://i.imgur.com/ofmM0Fg.png)
+2. 并行GC(ParNew)  
+![](https://i.imgur.com/nybJ0iD.png)  
+![](https://i.imgur.com/sOMNrOg.png)
+3. 并行回收GC(Parallel/Parallel Scavenge)
+![](https://i.imgur.com/Vntciue.png)  
+![](https://i.imgur.com/MBt7AOo.png)  
+![](https://i.imgur.com/jc7VhvA.png)
+#### 老年代 ####
+1. 并行GC(Parallel Old/Parallel MSC)  
+![](https://i.imgur.com/GKfk12q.png)
+2. 并发标记清除GC(CMS)  
+![](https://i.imgur.com/XMwbd7v.png)  
+![](https://i.imgur.com/mV19kJO.png)
+ - 四步过程  
+a. 初始标记(CMS initial mark): 只是标记一下GC Roots能**直接关联**的对象, 速度很快, 仍然需要暂停所有的工作线程  
+b. 并发标记(CMS concurrent mark): 进行GC Roots跟踪的过程, 和用户线程一起工作, 不需要暂停工作线程. 主要标记过程, 标记全部对象  
+c. 重新标记(CMS remark): 为了修正在并发标记期间, 因用户程序继续运行而导致标记产生变动的那一部分对象的标记记录, 仍然需要暂停所有的工作线程. 由于并发标记时, 用户线程依然运行, 因此在正式清理前, 再做修正  
+d. 并发清除(CMS concurrent sweep): 清除GC Roots不可达对象, 和用户线程一起工作, 不需要暂停工作线程. 基于标记结果, 直接清理对象  
+e. 由于耗时最长的并发标记和并发清楚过程中, 垃圾收集线程可以和用户线程一起并发工作, 所以总体上来看CMS收集器的内存回收和用户线程是一起并发地执行
+ - 优点: 并发收集低停顿  
+ - 缺点:   
+a. 并发执行, 对CPU资源压力大  
+![](https://i.imgur.com/B30VSi7.png)  
+b. 采用的标记清除算法会导致大量碎片  
+![](https://i.imgur.com/B00pwjz.png)
+ - 配置XX:+UseConcMarkSweepGC  
+![](https://i.imgur.com/pKzOUsp.png)
+3. 串行GC(Serial Old/Serial MSC)  
+![](https://i.imgur.com/JV5xq0k.png)
+#### G1 ####
+![](https://i.imgur.com/XjTn7ML.png)  
+2. G1是什么?  
+![](https://i.imgur.com/2yH4Ws6.png)  
+![](https://i.imgur.com/Luf4QPc.png)  
+![](https://i.imgur.com/pul0rcM.png)
+3. 特点  
+![](https://i.imgur.com/ZKJpvoY.png)
+4. 底层原理
+ - Region区域化垃圾收集器: 最大好处是化整为零, 避免全内存扫描, 只需要按照区域来进行扫描即可  
+![](https://i.imgur.com/10vUSOM.png)  
+![](https://i.imgur.com/GstSqEH.png)  
+![](https://i.imgur.com/RlcH6Kr.png)
+ - 回收步骤  
+![](https://i.imgur.com/QvID2UZ.png)  
+![](https://i.imgur.com/6DDQELM.png)
+ - 四步过程  
+![](https://i.imgur.com/xbLw0wy.png)
+5. 常用配置参数  
+![](https://i.imgur.com/B0Mj2J2.png)
+6. 和CMS相比的优势  
+![](https://i.imgur.com/BRJgYzc.png)
+
+## Linux ##
+1. 生产环境服务器变慢, 谈谈诊断思路和性能评估?
+ - 整机: `top`, 精简版为`uptime`  
+![](https://i.imgur.com/qIZpbFQ.png)
+ - CPU: `vmstat`
+a. 查看CPU(包含但不限于)  
+![](https://i.imgur.com/yvr4lzb.png)  
+![](https://i.imgur.com/VvLTxqq.png)  
+b. 查看额外  
+![](https://i.imgur.com/sXpOZHY.png)
+ - 内存: `free`  
+a. 应用程序可用内存数  
+![](https://i.imgur.com/hKJw2nR.png)  
+b. 查看额外: `pidstat-p 进程号 -r 采样间隔秒数`
+ - 硬盘: `df`: 查看磁盘剩余空间  
+![](https://i.imgur.com/CA6vSHR.png)
+ - 磁盘IO: `iostat`  
+a. 磁盘IO性能评估  
+![](https://i.imgur.com/bMYKNlV.png)  
+![](https://i.imgur.com/pL6MVO7.png)
+b. 查看额外: `pidstat -d 采样间隔秒数 -p 进程号`
+ - 网络IO: `ifstat`  
+a. 默认本地没有, 下载ifstat  
+![](https://i.imgur.com/RfKLsmb.png)  
+b. 查看网络IO  
+![](https://i.imgur.com/zsVtiQe.png)
+2. CPU占用过高, 请谈谈分析思路和定位: 结合Linux和JDK命令一起分析(案例分析)  
+ - 先用`top`命令找出CPU占比最高的  
+![](https://i.imgur.com/PSy7lYE.png)
+ - `ps -ef`或`jps`进一步定位, 得知是一个怎样的后台程序给我们惹事  
+![](https://i.imgur.com/DZsEhxE.png)
+ - **定位到具体线程或者代码**  
+a. `ps -mp 进程号 -o THREAD,tid,time`  
+![](https://i.imgur.com/aQ5HtXY.png)   
+b. 参数解释
+> -m 显示所有的线程  
+> -p pid进程使用CPU的时间  
+> -o 该参数后是用户自定义格式
+ - 将需要的**线程ID**转化为16进制格式(英文小写格式): `printf "$x\n" 有问题的线程ID`, 或者计算器
+ - 查看进程堆栈信息, 定位到具体的某行代码: `jstack 进程ID | grep tid(16进制线程ID小写英文) -A60`
+3. JDK自带的JVM监控和性能分析工具用过哪些?  
+待补充...
