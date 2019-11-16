@@ -1717,4 +1717,18 @@ b. 参数解释
  - 将需要的**线程ID**转化为16进制格式(英文小写格式): `printf "$x\n" 有问题的线程ID`, 或者计算器
  - 查看进程堆栈信息, 定位到具体的某行代码: `jstack 进程ID | grep tid(16进制线程ID小写英文) -A60`
 3. JDK自带的JVM监控和性能分析工具用过哪些?  
-待补充...
+ - 是什么  
+![](https://i.imgur.com/9d4Hlfz.jpg)
+ - 性能监控工具  
+a. jps(虚拟机进程状况工具)
+b. jinfo(Java配置信息工具)
+c. jmap(内存映像工具)
+d. jstat(统计信息监控工具)
+
+## 其他面试题 ##
+### Redis ###
+![](https://i.imgur.com/HgbdNf8.png)  
+![](https://i.imgur.com/kUBg3Nu.png)
+
+### MQ ###
+![](https://i.imgur.com/zERT2ld.png)
