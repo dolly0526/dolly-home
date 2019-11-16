@@ -44,10 +44,10 @@ d. **存储层**:
 ![](https://i.imgur.com/YpXhCsH.png)  
 ![](https://i.imgur.com/uyilXT7.png)
 
-## 七种join ##
+## 七种JOIN ##
 ![](https://i.imgur.com/rpMpwfO.png)  
 **注意:**  
-mysql不支持full outer join, 需用union  
+MySQL不支持FULL OUTER JOIN, 需用UNION  
 ![](https://i.imgur.com/TkPcyVb.png)  
 ![](https://i.imgur.com/GeYUhS7.png)
 
@@ -55,9 +55,9 @@ mysql不支持full outer join, 需用union
 ### 是什么 ###
  - 官方定义: 索引(Index)是帮助MySQL高效获取数据的**数据结构**  
 ![](https://i.imgur.com/BioF5H9.png)
- - 简单理解: 排好序的快速查找数据结构(where和order by均受影响)
+ - 简单理解: 排好序的快速查找数据结构(where和order by均受影响)  
 a. 详解  
-![](https://i.imgur.com/KMc61gX.png)
+![](https://i.imgur.com/KMc61gX.png)  
 b. 除数据本身之外, 数据库还维护着一个满足特定查找算法的数据结构, 这些数据结构以某种方式指向数据, 这样就可以在这些数据结构的基础上实现高级查找算法, 这种数据结构就是索引
  - 一般来说索引本身也很大, 不可能全部存储在内存中, 因此索引往往以索引文件的形式存储在磁盘上
  - 我们平常所说的索引，如果没有特别指明，都是指B+树结构组织的索引。其中聚集索引，次要索引，覆盖索引，复合索引，前缀索引，唯一索引默认都是使用B+树索引，统称索引。当然，除了B+树这种类型的索引之外，还有哈稀索引(hash index)等。
