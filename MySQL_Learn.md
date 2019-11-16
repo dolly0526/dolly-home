@@ -18,6 +18,7 @@ c. **引擎层**:
 存储引擎层，存储引擎真正的负责了MySQL中数据的存储和提取，服务器通过API与存储引擎进行通信。不同的存储引擎具有的功能不同，这样我们可以根据自己的实际需要进行选取。后面介绍MyISAM和InnoDB  
 d. **存储层**:  
 数据存储层，主要是将数据存储在运行于裸设备的文件系统之上，并完成与存储引擎的交互。
+
 ### 查询说明 ###
 - 首先，mysql的查询流程大致是：mysql客户端通过协议与mysql服务器建连接，发送查询语句，先检查查询缓存，如果命中，直接返回结果，否则进行语句解析
 - 有一系列预处理，比如检查语句是否写正确了，然后是查询优化（比如是否使用索引扫描，如果是一个不可能的条件，则提前终止），生成查询计划，然后查询引擎启动，开始执行查询，从底层存储引擎调用API获取数据，最后返回给客户端。怎么存数据、怎么取数据，都与存储引擎有关。
@@ -26,9 +27,66 @@ d. **存储层**:
 ## 存储引擎 ##
 ### 查看命令 ###
 ![](https://i.imgur.com/JGliX4R.png)
+
 ### MyISAM和InnoDB ###
 ![](https://i.imgur.com/RQ00KMk.png)
+
 ### 阿里优化 ###
 ![](https://i.imgur.com/6oQHZRH.png)
 
-##  ##
+## SQL变慢原因 ##
+1. 查询语句写的烂
+2. 索引失效(单值/复合)
+3. 关联查询太多join(设计缺陷或不得已的需求)
+4. 服务器调优及各个参数设置(缓冲/线程数等)
+
+## SQL机读顺序 ##
+![](https://i.imgur.com/YpXhCsH.png)  
+![](https://i.imgur.com/uyilXT7.png)
+
+## 七种join ##
+![](https://i.imgur.com/rpMpwfO.png)  
+**注意:**  
+mysql不支持full outer join, 需用union  
+![](https://i.imgur.com/TkPcyVb.png)  
+![](https://i.imgur.com/GeYUhS7.png)
+
+## 索引 ##
+### 是什么 ###
+ - 官方定义: 索引(Index)是帮助MySQL高效获取数据的**数据结构**  
+![](https://i.imgur.com/BioF5H9.png)
+ - 简单理解: 排好序的快速查找数据结构(where和order by均受影响)
+a. 详解  
+![](https://i.imgur.com/KMc61gX.png)
+b. 除数据本身之外, 数据库还维护着一个满足特定查找算法的数据结构, 这些数据结构以某种方式指向数据, 这样就可以在这些数据结构的基础上实现高级查找算法, 这种数据结构就是索引
+ - 一般来说索引本身也很大, 不可能全部存储在内存中, 因此索引往往以索引文件的形式存储在磁盘上
+ - 我们平常所说的索引，如果没有特别指明，都是指B+树结构组织的索引。其中聚集索引，次要索引，覆盖索引，复合索引，前缀索引，唯一索引默认都是使用B+树索引，统称索引。当然，除了B+树这种类型的索引之外，还有哈稀索引(hash index)等。
+
+### 优势 ###
+1. 类似大学图书馆建书目索引，提高数据检索的效率，降低数据库的IO成本
+2. 通过索引列对数据进行排序，降低数据排序的成本，降低了CPU的消耗
+
+### 劣势 ###
+1. 实际上索引也是一张表，该表保存了主键与索引字段，并指向实体表的记录，所以索引列也是要占用空间的
+2. 虽然索引大大提高了查询速度，同时却会降低更新表的速度，如对表进行INSERT、UPDATE和DELETE。因为更新表时，MySQL不仅要保存数据，还要保存一下索引文件每次更新添加了索引列的字段，都会调整因为更新所带来的键值变化后的索引信息
+3. 索引只是提高效率的一个因素，如果你的MySQL有大数据量的表，就需要花时间研究建立最优秀的索引，或优化查询语句
+
+### 分类 ###
+1. 单值索引: 即一个索引只包含单个列，一个表可以有多个单列索引
+2. 唯一索引: 索引列的值必须唯一，但允许有空值
+3. 复合索引: 即一个索引包含多个列
+4. 基本语法
+ - 创建:   
+a. CREATE  [UNIQUE ] INDEX indexName ON mytable(columnname(length));   
+b. 如果是CHAR，VARCHAR类型，length可以小于字段实际长度；
+如果是BLOB和TEXT类型，必须指定length。  
+c. ALTER mytable ADD  [UNIQUE ]  INDEX [indexName] ON (columnname(length)) 
+ - 删除: DROP INDEX [indexName] ON mytable; 
+ - 查看: SHOW INDEX FROM table_name;
+ - 使用ALTER命令:   
+a. ALTER TABLE tbl_name ADD PRIMARY KEY (column_list): 该语句添加一个主键，这意味着索引值必须是唯一的，且不能为NULL。  
+b. ALTER TABLE tbl_name ADD UNIQUE index_name(column_list): 这条语句创建索引的值必须是唯一的（除了NULL外，-NULL可能会出现多次）。  
+c. ALTER TABLE tbl_name ADD INDEX index_name (column_list): 添加普通索引，索引值可出现多次。  
+d. ALTER TABLE tbl_name ADD FULLTEXT index_name (column_list):该语句指定了索引为 FULLTEXT，用于全文索引。
+
+### 结构 ###
