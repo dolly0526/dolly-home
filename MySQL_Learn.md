@@ -94,7 +94,7 @@ d. ALTER TABLE tbl_name ADD FULLTEXT index_name (column_list):该语句指定了
  - [BTree和B+Tree详解](https://www.cnblogs.com/vianzhang/p/7922426.html)
  - [MySQL索引原理及BTree（B-/+Tree）结构详解](https://blog.csdn.net/u013967628/article/details/84305511)
  - [记一次腾讯面试：有了二叉查找树、平衡树（AVL）为啥还需要红黑树？](https://zhuanlan.zhihu.com/p/72505589)
-1. B+Tree索引
+1. BTree索引
  - 图解检索原理  
 ![](https://i.imgur.com/372TIhV.png)
  - 初始化介绍  
@@ -200,3 +200,30 @@ h. Distinct: 优化distinct操作，在找到第一匹配的元组后即停止�
 ![](https://i.imgur.com/zVVaw1U.png)
 
 ### 索引优化 ###
+1. 全值匹配我最爱  
+![](https://i.imgur.com/pmrymNz.png)
+2. **最佳左前缀法则**: 如果索引了多列，要遵守最左前缀法则。指的是查询从索引的**最左前列开始**并且**不跳过索引中的列**。
+ - 带头大哥不能死, 中间兄弟不能断  
+![](https://i.imgur.com/C4XFegs.png)
+3. 不在索引列上做任何操作（计算、函数、(自动or手动)类型转换），会导致索引失效而转向全表扫描
+ - 索引列上少计算  
+![](https://i.imgur.com/sVvr5ne.png)
+4. 存储引擎不能使用索引中范围条件右边的列
+ - 范围之后全失效  
+![](https://i.imgur.com/3fU9CXd.png)
+5. 尽量使用覆盖索引(只访问索引的查询(索引列和查询列一致))，减少select *  
+![](https://i.imgur.com/dvmByyS.png)
+6. mysql在使用不等于(!= 或者<>)的时候无法使用索引会导致全表扫描  
+![](https://i.imgur.com/kHPkw7s.png)
+7. is null, is not null也无法使用索引  
+![](https://i.imgur.com/capyxDt.png)
+8. like以通配符开头('%abc...'), mysql索引失效会变成全表扫描的操作
+ - 百分like加右边  
+![](https://i.imgur.com/EIcvWmn.png)
+ - 问题: 解决like'%字符串%'时索引失效的方法 -> **覆盖索引**  
+9. 字符串不加单引号索引失效  
+![](https://i.imgur.com/ZWfmoLX.png)
+10. 少用or, 用它来连接时会索引失效  
+11. 总结  
+![](https://i.imgur.com/oUSzKmQ.png)
+
