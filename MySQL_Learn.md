@@ -145,11 +145,37 @@ P1表示小于17的磁盘块，P2表示在17和35之间的磁盘块，P3表示�
  - 执行计划包含的信息  
 ![](https://i.imgur.com/12Fi215.png)
 4. 各字段解释
- - id: select查询的序列号,包含一组数字，表示查询中执行select子句或操作表的顺序, 有三种情况: 
+ - **id**: select查询的序列号,包含一组数字，表示查询中执行select子句或操作表的顺序, 有三种情况: 
 a. id相同，执行顺序**由上至下**  
 ![](https://i.imgur.com/wjgAqeL.png)  
 b. id不同，如果是子查询，id的序号会**递增，id值越大优先级越高**，越先被执行  
 ![](https://i.imgur.com/epw8PyD.png)  
 c. id相同又不同，**同时存在**  
 ![](https://i.imgur.com/j52vTaq.png)
- - 
+ - select_type  
+a. 有哪些  
+![](https://i.imgur.com/HfzUhLM.png)  
+b. 查询的类型，主要是用于区别普通查询、联合查询、子查询等的复杂查询  
+![](https://i.imgur.com/ve60rcD.png)
+ - table: 显示这一行的数据是关于哪张表的
+ - **type**  
+a. 有哪些  
+![](https://i.imgur.com/N0eWFKj.png)  
+b. 访问类型排列  
+![](https://i.imgur.com/BYNpkda.png)  
+c. 显示查询使用了何种类型，从最好到最差依次是：system > const > eq_ref > ref > range > index > ALL  
+![](https://i.imgur.com/3oh8MIv.png)
+ - possible_keys: 显示可能应用在这张表中的索引，一个或多个。  
+注: 查询涉及到的字段上若存在索引，则该索引将被列出，但不一定被查询实际使用
+ - **key**: 实际使用的索引。如果为NULL，则没有使用索引  
+注: 查询中若使用了覆盖索引，则该索引仅出现在key列表中  
+![](https://i.imgur.com/otZPxRh.png)
+ - key_len: 表示索引中使用的字节数，可通过该列计算查询中使用的索引的长度。在不损失精确性的情况下，长度越短越好
+注: key_len显示的值为索引字段的最大可能长度，并非实际使用长度，即key_len是根据表定义计算而得，不是通过表内检索出的  
+![](https://i.imgur.com/E5b8Enx.png)
+ - ref: 显示索引的哪一列被使用了，如果可能的话，是一个常数。哪些列或常量被用于查找索引列上的值  
+![](https://i.imgur.com/WIt0yQg.png)
+ - **rows**: 根据表统计信息及索引选用情况，大致估算出找到所需的记录所需要读取的行数  
+![](https://i.imgur.com/agDGhUj.png)
+ - **Extra**: 包含不适合在其他列中显示但十分重要的额外信息  
+a. 
