@@ -1,4 +1,4 @@
-# 深入MySQL #
+# MySQL技术内幕 #
 2019/11/16 15:03:00  
 
 ## 概述 ##
@@ -72,9 +72,9 @@ b. 除数据本身之外, 数据库还维护着一个满足特定查找算法的
 3. 索引只是提高效率的一个因素，如果你的MySQL有大数据量的表，就需要花时间研究建立最优秀的索引，或优化查询语句
 
 ### 分类 ###
-1. 单值索引: 即一个索引只包含单个列，一个表可以有多个单列索引
-2. 唯一索引: 索引列的值必须唯一，但允许有空值
-3. 复合索引: 即一个索引包含多个列
+1. **单值索引**: 即一个索引只包含单个列，一个表可以有多个单列索引
+2. **唯一索引**: 索引列的值必须唯一，但允许有空值
+3. **复合索引**: 即一个索引包含多个列
 4. 基本语法
  - 创建:   
 a. CREATE  [UNIQUE ] INDEX indexName ON mytable(columnname(length));   
@@ -93,6 +93,7 @@ d. ALTER TABLE tbl_name ADD FULLTEXT index_name (column_list):该语句指定了
 0. 参考资料: 
  - [BTree和B+Tree详解](https://www.cnblogs.com/vianzhang/p/7922426.html)
  - [MySQL索引原理及BTree（B-/+Tree）结构详解](https://blog.csdn.net/u013967628/article/details/84305511)
+ - [记一次腾讯面试：有了二叉查找树、平衡树（AVL）为啥还需要红黑树？](https://zhuanlan.zhihu.com/p/72505589)
 1. B+Tree索引
  - 图解检索原理  
 ![](https://i.imgur.com/372TIhV.png)
@@ -193,7 +194,7 @@ d. Using where: 表明使用了where过滤
 e. Using join buffer: 使用了连接缓存
 f. Impossible where: where子句的值总是false，不能用来获取任何元组  
 ![](https://i.imgur.com/LPdRSDD.png)  
-g. Select tables optimized away: 在没有GROUPBY子句的情况下，基于索引优化MIN/MAX操作或者对于MyISAM存储引擎优化COUNT(*)操作，不必等到执行阶段再进行计算，查询执行计划生成的阶段即完成优化。  
+g. Select tables optimized away: 在没有GROUP BY子句的情况下，基于索引优化MIN/MAX操作或者对于MyISAM存储引擎优化COUNT(*)操作，不必等到执行阶段再进行计算，查询执行计划生成的阶段即完成优化。  
 h. Distinct: 优化distinct操作，在找到第一匹配的元组后即停止找同样值的动作
 5. 热身Case  
 ![](https://i.imgur.com/zVVaw1U.png)
