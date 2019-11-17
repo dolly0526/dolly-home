@@ -236,4 +236,15 @@ h. Distinct: 优化distinct操作，在找到第一匹配的元组后即停止�
  - 尽可能通过分析统计信息和调整query的写法来达到选择合适索引的目的
  - 少用Hint强制索引
 
+### SQL优化 ###
+### 性能分析 ###
+1. 慢查询的开启并捕获
+2. EXPLAIN + 慢SQL分析
+3. show profile查询SQL在MySQL服务器里面的执行细节和生命周期情况
+4. SQL数据库服务器的参数调优
+
 ### 查询优化 ###
+1. **永远小表驱动大表**  
+![](https://i.imgur.com/3gSNjMv.png)  
+![](https://i.imgur.com/Se06Qmy.png)
+2. order by关键字优化
