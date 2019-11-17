@@ -55,7 +55,7 @@ MySQL不支持FULL OUTER JOIN, 需用UNION
 ### 是什么 ###
  - 官方定义: 索引(Index)是帮助MySQL高效获取数据的**数据结构**  
 ![](https://i.imgur.com/BioF5H9.png)
- - 简单理解: 排好序的快速查找数据结构(where和order by均受影响)  
+ - 简单理解: **排好序**的**快速查找**数据结构(where和order by均受影响)  
 a. 详解  
 ![](https://i.imgur.com/KMc61gX.png)  
 b. 除数据本身之外, 数据库还维护着一个满足特定查找算法的数据结构, 这些数据结构以某种方式指向数据, 这样就可以在这些数据结构的基础上实现高级查找算法, 这种数据结构就是索引
@@ -225,5 +225,15 @@ h. Distinct: 优化distinct操作，在找到第一匹配的元组后即停止�
 ![](https://i.imgur.com/ZWfmoLX.png)
 10. 少用or, 用它来连接时会索引失效  
 11. 总结  
-![](https://i.imgur.com/oUSzKmQ.png)
+![](https://i.imgur.com/t9vbDiP.png)
+12. 注意
+ - 定值、范围还是排序，一般order by是给个范围
+ - group by 基本上都需要进行排序，会有临时表产生
+13. 一般性建议
+ - 对于单键索引，尽量选择针对当前query过滤性更好的索引
+ - 在选择组合索引的时候，当前query中过滤性最好的字段在索引字段顺序中，位置越靠前(左)越好
+ - 在选择组合索引的时候，尽量选择可以能够包含当前query中的where字句中更多字段的索引
+ - 尽可能通过分析统计信息和调整query的写法来达到选择合适索引的目的
+ - 少用Hint强制索引
 
+### 查询优化 ###
