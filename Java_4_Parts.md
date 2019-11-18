@@ -1,8 +1,10 @@
 # 集合 #
-2019/9/19 22:20:52 
+2019/9/19 22:20:52  
 
 ## List ##
 ### ArrayList ###
+0. 参考资料
+ - [Java集合源码分析](https://www.cnblogs.com/xujian2014/tag/Java%E9%9B%86%E5%90%88%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/)
 1. `ArrayList list = new ArrayList();`  
 jdk7: 底层创建了长度为**10**的Object[]数组elementData  
 jdk8: 底层Object[]数组elementData初始化为**{}**, 并没有创建长度为10的数组(代码改了但注释没改)
@@ -119,7 +121,10 @@ jdk7和jdk8中通过Vector()构造器创建对象时, 底层都创建了长度�
 ## Map ##
 ### HashMap ###
 0. 参考资料:  
-[Java 8系列之重新认识HashMap](https://zhuanlan.zhihu.com/p/21673805)
+ - [Java集合源码分析（四）HashMap](https://www.cnblogs.com/zhangyinhua/p/7698642.html)
+ - [JDK1.8 HashMap源码分析](https://www.cnblogs.com/xiaoxi/p/7233201.html)
+ - [jdk1.8 HashMap工作原理和扩容机制(源码解析)](https://blog.csdn.net/u010890358/article/details/80496144)
+ - [Java 8系列之重新认识HashMap](https://zhuanlan.zhihu.com/p/21673805)
 1. jdk7中的HashMap  
  - `HashMap map = new HashMap()`:在实例化以后，底层创建了长度是**16**的一维数组Entry[] table。  
  - `map.put(key1,value1)`:  
@@ -346,6 +351,13 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
 
 # 基础 #
 2019/8/5 17:05:52 
+
+## 如何判断两个对象是否相等 ##
+[Java中如何判断两个对象是否相等（Java equals and ==）](https://blog.csdn.net/u013063153/article/details/78808923)
+
+## 拷贝和浅拷贝 ##
+[细说 Java 的深拷贝和浅拷贝](https://www.cnblogs.com/plokmju/p/7357205.html)
+
 ## IO/NIO ##
 
 
