@@ -368,6 +368,9 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的Bucket表容量: 64
 # 基础 #
 2019/8/5 17:05:52 
 
+## IO/NIO ##
+
+
 ## 如何判断两个对象是否相等 ##
 [Java中如何判断两个对象是否相等（Java equals and ==）](https://blog.csdn.net/u013063153/article/details/78808923)
 
@@ -380,8 +383,8 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的Bucket表容量: 64
 ## 反射 ##
 [Java 反射详解](https://www.cnblogs.com/ysocean/p/6516248.html)
 
-## IO/NIO ##
-
+## 异常 ##
+[深入理解Java中异常体系](https://blog.csdn.net/zhanaolu4821/article/details/81012382)
 
 # 高并发 #
 2019/10/3 14:20:01 
