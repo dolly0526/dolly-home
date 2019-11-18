@@ -244,7 +244,39 @@ h. Distinct: 优化distinct操作，在找到第一匹配的元组后即停止�
 4. SQL数据库服务器的参数调优
 
 ### 查询优化 ###
-1. **永远小表驱动大表**  
+#### 永远小表驱动大表 ####  
 ![](https://i.imgur.com/3gSNjMv.png)  
 ![](https://i.imgur.com/Se06Qmy.png)
-2. order by关键字优化
+
+#### order by关键字优化 ####
+1. ORDER BY子句，尽量使用Index方式排序,避免使用FileSort方式排序  
+ - Case  
+![](https://i.imgur.com/9ZzyZjN.png)  
+![](https://i.imgur.com/3Vc16sH.png)
+ - MySQL支持二种方式的排序，FileSort和Index，Index效率高. 它指MySQL扫描索引本身完成排序。FileSort方式效率较低。
+ - ORDER BY满足两情况，会使用Index方式排序:  
+a. ORDER BY语句使用索引最左前列  
+b. 使用Where子句与Order BY子句条件列组合满足索引最左前列
+2. 尽可能在索引列上完成排序操作，遵照索引建的**最佳左前缀**
+3. 如果不在索引列上，filesort有两种算法：mysql就要启动双路排序和单路排序
+ - MySQL 4.1之前是使用双路排序,字面意思就是两次扫描磁盘，最终得到数据: 读取行指针和order by列，对他们进行排序，然后扫描已经排序好的列表，按照列表中的值重新从列表中读取对应的数据输出
+ - 从磁盘取排序字段，在buffer进行排序，再从磁盘取其他字段。
+ - 取一批数据，要对磁盘进行了两次扫描，众所周知，I\O是很耗时的，所以在mysql4.1之后，出现了第二种改进的算法，就是单路排序。
+ - 从磁盘读取查询需要的所有列，按照order by列在buffer对它们进行排序，然后扫描排序后的列表进行输出，它的效率更快一些，避免了第二次读取数据。并且把随机IO变成了顺序IO, 但是它会使用更多的空间，因为它把每一行都保存在内存中了。
+ - 结论及引申出的问题:  
+a. 由于单路是后出的，总体而言好过双路  
+b. 但是用单路有问题  
+![](https://i.imgur.com/IJwBIAp.png)
+4. 优化策略
+ - 增大max_length_for_sort_data参数的设置
+ - 增大sort_buffer_size参数的设置
+ - Why  
+![](https://i.imgur.com/mDFt5mN.png)
+5. 总结  
+![](https://i.imgur.com/RM70yus.png)
+
+#### GROUP BY关键字优化 ####
+1. group by实质是**先排序后进行分组**，遵照索引建的**最佳左前缀**
+2. 当无法使用索引列，增大max_length_for_sort_data参数的设置+增大sort_buffer_size参数的设置
+3. where高于having，能写在where限定的条件就不要去having限定了
+

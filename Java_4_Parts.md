@@ -129,7 +129,7 @@ jdk7和jdk8中通过Vector()构造器创建对象时, 底层都创建了长度�
 1. jdk7中的HashMap  
  - `HashMap map = new HashMap()`: 在实例化以后，底层创建了长度是**16**的一维数组Entry[] table。  
  - `map.put(key1,value1)`   
-首先，调用key1所在类的hashCode()计算key1哈希值，此哈希值经过某种算法计算以后，得到在Entry数组中的存放位置。  
+首先，调用key1所在类的hashCode()计算key1哈希值，此哈希值经过**某种算法**计算以后，得到在Entry数组中的存放位置。  
 如果此位置上的数据为空，此时的key1-value1添加成功。 ----情况1  
 如果此位置上的数据不为空，(意味着此位置上存在一个或多个数据(以链表形式存在)),比较key1和已经存在的一个或多个数据的哈希值：  
 如果key1的哈希值与已经存在的数据的哈希值都不相同，此时key1-value1添加成功。----情况2  
@@ -190,8 +190,17 @@ jdk7和jdk8中通过Vector()构造器创建对象时, 底层都创建了长度�
         return null;
     }
  ```
+ - hash函数: 首先获取对象的hashCode()值，然后将hashCode值右移16位，然后将右移后的值与原来的hashCode做异或运算，返回结果。（其中h>>>16，在JDK1.8中，优化了高位运算的算法，使用了零扩展，无论正数还是负数，都在高位插入0）。
+ ```
+static final int hash(Object key) {
+    int h;
+    return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+}
+ ```
+ - 获取下标: 在putVal源码中，我们通过**(n-1)&hash**获取该对象的键在hashmap中的位置。其中hash的值就是上面的hash函数获得的值, 其中n表示的是hash桶数组的长度，并且该长度为2的n次方，这样(n-1)&hash就等价于hash%n。因为&运算的效率高于%运算。
  - 补充：关于情况2和情况3：此时key1-value1和原来的数据以链表的方式存储。  
- - 在不断的添加过程中，会涉及到扩容问题，当超出临界值(且要存放的位置非空)时，扩容。默认的扩容方式：扩容为原来容量的**2倍**，并将原有的数据复制过来。
+ - 在不断的添加过程中，会涉及到扩容问题，当超出临界值(且要存放的位置非空)时，扩容。  
+默认的扩容方式：扩容为原来容量的**2倍**，并将原有的数据复制过来。
 2. jdk8中的HashMap  
  - new HashMap(): 底层没有创建一个长度为16的数组
  ```
@@ -270,7 +279,7 @@ jdk7和jdk8中通过Vector()构造器创建对象时, 底层都创建了长度�
         break;
     }
  ```
- - 当数组的某一个索引位置上的元素以链表形式存在的数据个数 > 8 且当前数组的长度 > 64时，此时此索引位置上的所数据改为使用**红黑树**存储。
+ - 当数组的某一个索引位置上的元素以链表形式存在的数据个数 > 8 且当前Bucket数组的长度 > 64时，此时此索引位置上的所数据改为使用**红黑树**存储。
  ```
     /**
      * Replaces all linked nodes in bin at index for given hash unless
@@ -303,7 +312,7 @@ DEFAULT_LOAD_FACTOR: 默认填充因子, 0.75(越小则链表越少)
 threshold：扩容的临界值(不会等到满才扩容, 因为不一定会满)，= 容量*填充因子：16 * 0.75 => 12  
 TREEIFY_THRESHOLD：Bucket中链表长度大于该默认值，转化为红黑树: 8  
 UNTREEIFY_THRESHOLD：当Bucket上的结点数小于这个值时树转链表: 6  
-MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
+MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的Bucket表容量: 64
 4. 关于红黑树
  - [红黑树与AVL树，各自的优缺点总结](https://www.jianshu.com/p/37436ed14cc6)
  - [二叉搜索树BST,AVL,红黑树,伸展树](https://blog.csdn.net/Holmofy/article/details/79692613)
@@ -367,6 +376,9 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
 
 ## 拷贝和浅拷贝 ##
 [细说 Java 的深拷贝和浅拷贝](https://www.cnblogs.com/plokmju/p/7357205.html)
+
+## 反射 ##
+[Java 反射详解](https://www.cnblogs.com/ysocean/p/6516248.html)
 
 ## IO/NIO ##
 
@@ -1216,6 +1228,9 @@ public class SynchronousQueueDemo {
  ```
 
 ### 用阻塞队列实现生产者-消费者模型 ###
+0. 参考资料
+ - [Java生产者消费者的三种实现](https://blog.csdn.net/xindoo/article/details/80004003)
+1. 代码实现
 ```
 public class ProdConsumerDemo {
     public static void main(String[] args) {
