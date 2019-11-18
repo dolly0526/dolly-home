@@ -127,8 +127,8 @@ jdk7和jdk8中通过Vector()构造器创建对象时, 底层都创建了长度�
  - [HashMap1.8的扩容机制](https://www.jianshu.com/p/0ab3e05b1d23)
  - [Java 8系列之重新认识HashMap](https://zhuanlan.zhihu.com/p/21673805)
 1. jdk7中的HashMap  
- - `HashMap map = new HashMap()`:在实例化以后，底层创建了长度是**16**的一维数组Entry[] table。  
- - `map.put(key1,value1)`:  
+ - `HashMap map = new HashMap()`: 在实例化以后，底层创建了长度是**16**的一维数组Entry[] table。  
+ - `map.put(key1,value1)`   
 首先，调用key1所在类的hashCode()计算key1哈希值，此哈希值经过某种算法计算以后，得到在Entry数组中的存放位置。  
 如果此位置上的数据为空，此时的key1-value1添加成功。 ----情况1  
 如果此位置上的数据不为空，(意味着此位置上存在一个或多个数据(以链表形式存在)),比较key1和已经存在的一个或多个数据的哈希值：  
@@ -302,6 +302,7 @@ DEFAULT_INITIAL_CAPACITY: HashMap的默认容量，16
 DEFAULT_LOAD_FACTOR: 默认填充因子, 0.75(越小则链表越少)  
 threshold：扩容的临界值(不会等到满才扩容, 因为不一定会满)，= 容量*填充因子：16 * 0.75 => 12  
 TREEIFY_THRESHOLD：Bucket中链表长度大于该默认值，转化为红黑树: 8  
+UNTREEIFY_THRESHOLD：当Bucket上的结点数小于这个值时树转链表: 6  
 MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
 4. 关于红黑树
  - [红黑树与AVL树，各自的优缺点总结](https://www.jianshu.com/p/37436ed14cc6)
