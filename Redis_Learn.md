@@ -33,3 +33,44 @@ c. Redis支持数据的备份，即master-slave模式的数据备份
 ![](https://i.imgur.com/pVl1j4f.png)
 
 ## Redis数据类型 ##
+常见操作命令: [Http://redisdoc.com/](Http://redisdoc.com/)
+
+### key ###
+![](https://i.imgur.com/WwImq8h.jpg)
+
+### String ###
+- string是redis最基本的类型，你可以理解成与Memcached一模一样的类型，一个key对应一个value。
+- string类型是二进制安全的。意思是redis的string可以包含任何数据。比如jpg图片或者序列化的对象 。
+- string类型是Redis最基本的数据类型，一个redis中字符串value最多可以是512M
+- 常用  
+![](https://i.imgur.com/VPVLZWm.jpg)  
+![](https://i.imgur.com/DJWiQ4B.jpg)
+
+### List ###
+- Redis 列表是简单的字符串列表，按照插入顺序排序。你可以添加一个元素导列表的头部（左边）或者尾部（右边）。
+- 它的底层实际是个链表
+- 常用  
+![](https://i.imgur.com/un6ATYk.jpg)  
+![](https://i.imgur.com/odsWdx1.jpg)
+
+### Set ###
+- Redis的Set是string类型的无序集合。它是通过HashTable实现实现的
+- 常用  
+![](https://i.imgur.com/HHvHtTO.jpg)
+
+### Hash ###
+- Redis hash 是一个键值对集合
+- Redis hash是一个string类型的field和value的映射表，hash特别适合用于存储对象
+- 类似Java里面的Map<String, Object>
+- 常用  
+![](https://i.imgur.com/xUwMmYD.jpg)
+
+### Zset ###
+- sorted set：有序集合
+- Redis zset 和 set 一样也是string类型元素的集合, 且不允许重复的成员, 不同的是每个元素都会关联一个double类型的分数。
+- Redis正是通过分数来为集合中的成员进行从小到大的排序。zset的成员是唯一的, 但分数(score)却可以重复。
+- 常用  
+![](https://i.imgur.com/00DvzXj.jpg)  
+![](https://i.imgur.com/CwXFRId.jpg)
+
+##  ##
