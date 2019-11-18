@@ -74,3 +74,7 @@ c. Redis支持数据的备份，即master-slave模式的数据备份
 ![](https://i.imgur.com/CwXFRId.jpg)
 
 ##  ##
+
+## P6面试题 ##
+![](https://i.imgur.com/XaNeGcO.png)  
+![](https://i.imgur.com/d35Cc4I.png)

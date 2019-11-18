@@ -1762,11 +1762,3 @@ a. jps(虚拟机进程状况工具)
 b. jinfo(Java配置信息工具)
 c. jmap(内存映像工具)
 d. jstat(统计信息监控工具)
-
-## 其他面试题 ##
-### Redis ###
-![](https://i.imgur.com/HgbdNf8.png)  
-![](https://i.imgur.com/kUBg3Nu.png)
-
-### MQ ###
-![](https://i.imgur.com/zERT2ld.png)
