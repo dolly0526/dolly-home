@@ -7,7 +7,7 @@
  - [Java集合源码分析](https://www.cnblogs.com/xujian2014/tag/Java%E9%9B%86%E5%90%88%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/)
 1. `ArrayList list = new ArrayList();`  
 jdk7: 底层创建了长度为**10**的Object[]数组elementData  
-jdk8: 底层Object[]数组elementData初始化为**{}**, 并没有创建长度为10的数组(代码改了但注释没改)
+jdk8: 底层Object[]数组elementData初始化为{}, 并没有创建长度为10的数组(代码改了但注释没改)
  ```
 	/** Constructs an empty list with an initial capacity of ten. */
 	public ArrayList() {
@@ -197,7 +197,7 @@ static final int hash(Object key) {
     return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
 }
  ```
- - 获取下标: 在putVal源码中，我们通过**(n-1)&hash**获取该对象的键在hashmap中的位置。其中hash的值就是上面的hash函数获得的值, 其中n表示的是hash桶数组的长度，并且该长度为2的n次方，这样(n-1)&hash就等价于hash%n。因为&运算的效率高于%运算。
+ - 获取下标: 在putVal源码中，我们通过(n-1)&hash获取该对象的键在hashmap中的位置。其中hash的值就是上面的hash函数获得的值, 其中n表示的是hash桶数组的长度，并且该长度为2的n次方，这样(n-1)&hash就等价于hash%n。因为&运算的效率高于%运算。
  - 补充：关于情况2和情况3：此时key1-value1和原来的数据以链表的方式存储。  
  - 在不断的添加过程中，会涉及到扩容问题，当超出临界值(且要存放的位置非空)时，扩容。  
 默认的扩容方式：扩容为原来容量的**2倍**，并将原有的数据复制过来。
