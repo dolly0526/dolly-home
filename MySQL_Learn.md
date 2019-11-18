@@ -277,6 +277,19 @@ b. 但是用单路有问题
 
 #### GROUP BY关键字优化 ####
 1. group by实质是**先排序后进行分组**，遵照索引建的**最佳左前缀**
-2. 当无法使用索引列，增大max_length_for_sort_data参数的设置+增大sort_buffer_size参数的设置
+2. 当无法使用索引列，增大max_length_for_sort_data参数的设置 + 增大sort_buffer_size参数的设置
 3. where高于having，能写在where限定的条件就不要去having限定了
 
+### 慢查询日志 ###
+1. 是什么  
+![](https://i.imgur.com/J5HeSnX.png)
+2. 怎么玩  
+ - 说明  
+![](https://i.imgur.com/HLRwrs2.png)
+ - 查看是否开启及如何开启  
+a. 默认: SHOW VARIABLES LIKE '%slow_query_log%';  
+![](https://i.imgur.com/smHJtMw.png)
+b. set global slow_query_log=1;  
+![](https://i.imgur.com/6igZ7nx.png)
+ - 什么样的SQL才会记录到慢查询日志中?  
+![](https://i.imgur.com/I2STH3p.png)
