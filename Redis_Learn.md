@@ -32,7 +32,7 @@ c. Redis支持数据的备份，即master-slave模式的数据备份
 2. 能干嘛  
 ![](https://i.imgur.com/pVl1j4f.png)
 
-## Redis数据类型 ##
+## 数据类型 ##
 常见操作命令: [Http://redisdoc.com/](Http://redisdoc.com/)
 
 ### key ###
@@ -73,7 +73,18 @@ c. Redis支持数据的备份，即master-slave模式的数据备份
 ![](https://i.imgur.com/00DvzXj.jpg)  
 ![](https://i.imgur.com/CwXFRId.jpg)
 
-##  ##
+## 配置文件 ##
+redis.conf
+### LIMITS ###
+1. Maxmemory-policy  
+（1）volatile-lru：使用LRU算法移除key，只对设置了过期时间的键  
+（2）allkeys-lru：使用LRU算法移除key  
+（3）volatile-random：在过期集合中移除随机的key，只对设置了过期时间的键  
+（4）allkeys-random：移除随机的key  
+（5）volatile-ttl：移除那些TTL值最小的key，即那些最近要过期的key  
+（6）noeviction (默认)：不进行移除。针对写操作，只是返回错误信息
+2. Maxmemory-samples  
+![](https://i.imgur.com/waEZyDh.png)
 
 ## P6面试题 ##
 ![](https://i.imgur.com/XaNeGcO.png)  
