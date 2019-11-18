@@ -124,6 +124,7 @@ jdk7和jdk8中通过Vector()构造器创建对象时, 底层都创建了长度�
  - [Java集合源码分析（四）HashMap](https://www.cnblogs.com/zhangyinhua/p/7698642.html)
  - [JDK1.8 HashMap源码分析](https://www.cnblogs.com/xiaoxi/p/7233201.html)
  - [jdk1.8 HashMap工作原理和扩容机制(源码解析)](https://blog.csdn.net/u010890358/article/details/80496144)
+ - [HashMap1.8的扩容机制](https://www.jianshu.com/p/0ab3e05b1d23)
  - [Java 8系列之重新认识HashMap](https://zhuanlan.zhihu.com/p/21673805)
 1. jdk7中的HashMap  
  - `HashMap map = new HashMap()`:在实例化以后，底层创建了长度是**16**的一维数组Entry[] table。  
@@ -301,10 +302,15 @@ DEFAULT_INITIAL_CAPACITY: HashMap的默认容量，16
 DEFAULT_LOAD_FACTOR: 默认填充因子, 0.75(越小则链表越少)  
 threshold：扩容的临界值(不会等到满才扩容, 因为不一定会满)，= 容量*填充因子：16 * 0.75 => 12  
 TREEIFY_THRESHOLD：Bucket中链表长度大于该默认值，转化为红黑树: 8  
-MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64  
+MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
+4. 关于红黑树
+ - [红黑树与AVL树，各自的优缺点总结](https://www.jianshu.com/p/37436ed14cc6)
+ - [二叉搜索树BST,AVL,红黑树,伸展树](https://blog.csdn.net/Holmofy/article/details/79692613)
 
 ### LinkedHashMap ###
-调用HashMap的putVal方法, 重写了newNode方法
+0. 参考资料
+ - [深入理解Map，HashMap，LinkedHashMap，TreeMap等](https://blog.csdn.net/haihui_yang/article/details/80642520)
+1. 调用HashMap的putVal方法, 重写了newNode方法
  ```
     Node<K,V> newNode(int hash, K key, V value, Node<K,V> e) {
         LinkedHashMap.Entry<K,V> p =
@@ -354,6 +360,9 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的hash表容量: 64
 
 ## 如何判断两个对象是否相等 ##
 [Java中如何判断两个对象是否相等（Java equals and ==）](https://blog.csdn.net/u013063153/article/details/78808923)
+
+## 参数传递机制 ##
+[java中方法的参数传递机制](https://www.cnblogs.com/lixiaolun/p/4311863.html)
 
 ## 拷贝和浅拷贝 ##
 [细说 Java 的深拷贝和浅拷贝](https://www.cnblogs.com/plokmju/p/7357205.html)
