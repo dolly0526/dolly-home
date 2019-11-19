@@ -36,8 +36,7 @@ c. Redis支持数据的备份，即master-slave模式的数据备份
 常见操作命令: [Http://redisdoc.com/](Http://redisdoc.com/)
 
 ### key ###
-**expire key**秒钟：为给定的key设置过期时间  
-![](https://i.imgur.com/WwImq8h.jpg)
+![](https://i.imgur.com/m0Kpxr6.jpg)
 
 ### String ###
 - string是redis最基本的类型，你可以理解成与Memcached一模一样的类型，一个key对应一个value。
