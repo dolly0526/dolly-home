@@ -5,6 +5,9 @@
 - 《尚硅谷大数据技术之ZooKeeper》
 - 《从Paxos到ZooKeeper：分布式一致性原理与实践》
 
+## 分布式系统 ##
+![](https://i.imgur.com/nFvBGBG.png)
+
 ## ZNode ##
 ### 数据结构 ###
 ![](https://i.imgur.com/tdR4YUW.png)

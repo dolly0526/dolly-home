@@ -12,6 +12,9 @@
 ## 存储架构 ##
 ![](https://i.imgur.com/CUXyzuj.png)
 
+## 存储模型 ##
+![](https://i.imgur.com/D7khY0x.png)
+
 ## 写流程 ##
 ![](https://i.imgur.com/dTfHM1P.png)  
 1）Client 先访问 zookeeper，获取 hbase:meta 表位于哪个 Region Server。  
