@@ -8,13 +8,13 @@
 ![](https://i.imgur.com/7QDYWjB.png)
 
 ## 部署模式 ##
-1. 用户在提交任务给 Spark 处理时，以下两个参数共同决定了 Spark 的运行方式。
- - master MASTER_URL：决定了 Spark 任务提交给哪种集群处理。
- - deploy-mode DEPLOY_MODE：决定了 Driver 的运行方式，可选值为Client 或者 Cluster。
-2. 通用运行流程概述
+1. 通用运行流程概述
  - 不论 Spark 以何种模式进行部署，任务提交后，都会先启动 Driver 进程，随后 Driver 进程向集群管理器注册应用程序，之后集群管理器根据此任务的配置文件分配 Executor 并启动，当 Driver 所需的资源全部满足后，Driver 开始执行 main 函数，Spark 查询为懒执行，当执行到 action 算子时开始反向推算，根据宽依赖进行 stage 的划分，随后每一个 stage 对应一个 taskset，taskset 中有多个 task，根据本地化原则，task 会被分发到指定的 Executor 去执行，在任务执行的过程中，Executor 也会不断与 Driver 进行通信，报告任务运行情况。
  - 图解  
 ![](https://i.imgur.com/LHVvkbv.png)
+2. 用户在提交任务给 Spark 处理时，以下两个参数共同决定了 Spark 的运行方式。
+ - master MASTER_URL：决定了 Spark 任务提交给哪种集群处理。
+ - deploy-mode DEPLOY_MODE：决定了 Driver 的运行方式，可选值为Client 或者 Cluster。
 
 ### YARN-Cluster模式 ###
 1. YARN调度流程  
@@ -173,8 +173,10 @@ bin/spark-submit \
                 --  case RegisteredExecutor
                     -- new Executor
  ```
-8. YARN部署Spark流程图  
-![](https://i.imgur.com/dOqCRik.png)  
+8. YARN部署Spark流程图
+ - 图解  
+![](https://i.imgur.com/dOqCRik.png)
+ - 源码级图解
 ![](https://i.imgur.com/JOMFF8q.png)
 
 ## 通讯架构 ##
@@ -196,20 +198,7 @@ bin/spark-submit \
 (9) TransportServer ： Netty 通 信 服 务 端 ， 一 个 RpcEndpoint 对 应 一 个TransportServer，接受远程消息后调用 Dispatcher 分发消息至对应收发件箱；
 
 ## 任务调度机制 ##
-1. 任务调度概述  
- - 当Driver起来后，Driver则会根据用户程序逻辑准备任务，并根据Executor资源情况逐步分发任务。在详细阐述任务调度前，首先说明下Spark里的几个概念。一个Spark应用程序包括Job、Stage以及Task三个概念：  
-a. Job是以Action方法为界，遇到一个Action方法则触发一个Job；  
-b. Stage是Job的子集，以RDD宽依赖(即Shuffle)为界，遇到Shuffle做一次划分；  
-c. Task是Stage的子集，以并行度(分区数)来衡量，分区数是多少，则有多少个task。  
-Spark的任务调度总体来说分两路进行，一路是Stage级的调度，一路是Task级的调度
- - 图解  
-![](https://i.imgur.com/5eF7hXj.png)
- - Spark RDD通过其Transactions操作，形成了RDD血缘关系图，即DAG，最后通过Action的调用，触发Job并调度执行。DAGScheduler负责Stage级的调度，主要是将job切分成若干Stages，并将每个Stage打包成TaskSet交给TaskScheduler调度。TaskScheduler负责Task级的调度，将DAGScheduler给过来的TaskSet按照指定的调度策略分发到Executor上执行，调度过程中SchedulerBackend负责提供可用资源，其中SchedulerBackend有多种实现，分别对接不同的资源管理系统。
- - 图解  
-![](https://i.imgur.com/APWvzg9.png)  
-![](https://i.imgur.com/I66TTPy.png)
- - Driver初始化SparkContext过程中，会分别初始化DAGScheduler、TaskScheduler、SchedulerBackend以及HeartbeatReceiver，并启动SchedulerBackend以及HeartbeatReceiver。SchedulerBackend通过ApplicationMaster申请资源，并不断从TaskScheduler中拿到合适的Task分发到Executor执行。HeartbeatReceiver负责接收Executor的心跳信息，监控Executor的存活状况，并通知到TaskScheduler。
-3. WordCount
+1. WordCount
  - 图解  
 ![](https://i.imgur.com/pKP1hx2.png)
  - 代码实现
@@ -223,3 +212,35 @@ sc.textFile("file:///app/software/spark/README.md")
  ```
  - 任务调度图解  
 ![](https://i.imgur.com/tQmlpz4.png)
+2. 任务调度概述  
+ - 当Driver起来后，Driver则会根据用户程序逻辑准备任务，并根据Executor资源情况逐步分发任务。在详细阐述任务调度前，首先说明下Spark里的几个概念。一个Spark应用程序包括Job、Stage以及Task三个概念：  
+a. Job是以Action方法为界，遇到一个Action方法则触发一个Job；  
+b. Stage是Job的子集，以RDD宽依赖(即Shuffle)为界，遇到Shuffle做一次划分；  
+c. Task是Stage的子集，以并行度(分区数)来衡量，分区数是多少，则有多少个task。  
+Spark的任务调度总体来说分两路进行，一路是Stage级的调度，一路是Task级的调度
+ - 图解  
+![](https://i.imgur.com/5eF7hXj.png)
+ - Spark RDD通过其Transactions操作，形成了RDD血缘关系图，即DAG，最后通过Action的调用，触发Job并调度执行。DAGScheduler负责Stage级的调度，主要是将job切分成若干Stages，并将每个Stage打包成TaskSet交给TaskScheduler调度。TaskScheduler负责Task级的调度，将DAGScheduler给过来的TaskSet按照指定的调度策略分发到Executor上执行，调度过程中SchedulerBackend负责提供可用资源，其中SchedulerBackend有多种实现，分别对接不同的资源管理系统。
+ - 图解  
+![](https://i.imgur.com/APWvzg9.png)  
+![](https://i.imgur.com/I66TTPy.png)
+ - Driver初始化SparkContext过程中，会分别初始化DAGScheduler、TaskScheduler、SchedulerBackend以及HeartbeatReceiver，并启动SchedulerBackend以及HeartbeatReceiver。SchedulerBackend通过ApplicationMaster申请资源，并不断从TaskScheduler中拿到合适的Task分发到Executor执行。HeartbeatReceiver负责接收Executor的心跳信息，监控Executor的存活状况，并通知到TaskScheduler。
+
+### Stage级调度 ###
+1. Spark的任务调度是从DAG切割开始，主要是由DAGScheduler来完成。当遇到一个Action操作后就会触发一个Job的计算，并交给DAGScheduler来提交，下图是涉及到Job提交的相关方法调用流程图。  
+![](https://i.imgur.com/wsij769.png)
+2. Job由最终的RDD和Action方法封装而成，SparkContext将Job交给DAGScheduler提交，它会根据RDD的血缘关系构成的DAG进行切分，将一个Job划分为若干Stages，具体划分策略是，由最终的RDD不断通过依赖回溯判断父依赖是否是宽依赖，即以Shuffle为界，划分Stage，窄依赖的RDD之间被划分到同一个Stage中，可以进行pipeline式的计算，如上图紫色流程部分。划分的Stages分两类，一类叫做ResultStage，为DAG最下游的Stage，由Action方法决定，另一类叫做ShuffleMapStage，为下游Stage准备数据，下面看一个简单的例子WordCount。  
+![](https://i.imgur.com/il8Px3j.png)  
+Job由saveAsTextFile触发，该Job由RDD-3和saveAsTextFile方法组成，根据RDD之间的依赖关系从RDD-3开始回溯搜索，直到没有依赖的RDD-0，在回溯搜索过程中，RDD-3依赖RDD-2，并且是宽依赖，所以在RDD-2和RDD-3之间划分Stage，RDD-3被划到最后一个Stage，即ResultStage中，RDD-2依赖RDD-1，RDD-1依赖RDD-0，这些依赖都是窄依赖，所以将RDD-0、RDD-1和RDD-2划分到同一个Stage，即ShuffleMapStage中，实际执行的时候，数据记录会一气呵成地执行RDD-0到RDD-2的转化。不难看出，其本质上是一个深度优先搜索算法。
+3. 一个Stage是否被提交，需要判断它的父Stage是否执行，只有在父Stage执行完毕才能提交当前Stage，如果一个Stage没有父Stage，那么从该Stage开始提交。Stage提交时会将Task信息（分区信息以及方法等）序列化并被打包成TaskSet交给TaskScheduler，一个Partition对应一个Task，另一方面TaskScheduler会监控Stage的运行状态，只有Executor丢失或者Task由于Fetch失败才需要重新提交失败的Stage以调度运行失败的任务，其他类型的Task失败会在TaskScheduler的调度过程中重试。
+
+### Task级调度 ###
+1. Spark Task的调度是由TaskScheduler来完成，由前文可知，DAGScheduler将Stage打包到TaskSet交给TaskScheduler，TaskScheduler会将TaskSet封装为TaskSetManager加入到调度队列中，TaskSetManager结构如下图所示。  
+![](https://i.imgur.com/w8eIsA9.png)
+2. TaskSetManager负责监控管理同一个Stage中的Tasks，TaskScheduler就是以TaskSetManager为单元来调度任务。  
+![](https://i.imgur.com/lDtIWTe.png)
+3. 前面也提到，TaskScheduler初始化后会启动SchedulerBackend，它负责跟外界打交道，接收Executor的注册信息，并维护Executor的状态，所以说SchedulerBackend是管“粮食”的，同时它在启动后会定期地去“询问”TaskScheduler有没有任务要运行，也就是说，它会定期地“问”TaskScheduler“我有这么余量，你要不要啊”，TaskScheduler在SchedulerBackend“问”它的时候，会从调度队列中按照指定的调度策略选择TaskSetManager去调度运行，大致方法调用流程如下图所示：  
+![](https://i.imgur.com/c2bl5ES.png)
+4. 图中，将TaskSetManager加入rootPool调度池中之后，调用SchedulerBackend的riviveOffers方法给driverEndpoint发送ReviveOffer消息；driverEndpoint收到ReviveOffer消息后调用makeOffers方法，过滤出活跃状态的Executor（这些Executor都是任务启动时反向注册到Driver的Executor），然后将Executor封装成WorkerOffer对象；准备好计算资源（WorkerOffer）后，taskScheduler基于这些资源调用resourceOffer在Executor上分配task。
+
+## Shuffle解析 ##
