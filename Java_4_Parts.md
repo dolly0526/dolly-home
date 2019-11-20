@@ -757,9 +757,9 @@ Minor GC会把Eden中的所有活的对象都移到Survivor区域中，如果Sur
 ![](https://i.imgur.com/42pnbKd.png)  
 ![](https://i.imgur.com/qILo8oW.png)
  - 用通俗的话解释一下标记清除算法，就是当程序运行期间，若可以使用的内存被耗尽的时候，GC线程就会被触发并将程序暂停，随后将要回收的对象标记一遍，最终统一回收这些对象，完成标记清理工作接下来便让应用程序恢复运行。
- - 主要进行两项工作，第一项则是**标记**，第二项则是**清除**。  
-a. 标记：从引用根节点开始标记遍历所有的GC Roots，先标记出要回收的对象。 
-b. 清除：遍历整个堆，把标记的对象清除。   
+ - 主要进行两项工作，第一项则是**标记**，第二项则是**清除**。    
+a. 标记：从引用根节点开始标记遍历所有的GC Roots，先标记出要回收的对象。  
+b. 清除：遍历整个堆，把标记的对象清除。     
 c. 缺点：此算法需要**暂停**整个应用，会产生**内存碎片** 
 3. 劣势  
  - 首先，它的缺点就是**效率比较低**（递归与全堆对象遍历），而且在进行GC的时候，需要**停止**应用程序，这会导致用户体验非常差劲
@@ -1126,7 +1126,9 @@ class MyCache {
 1. 是什么  
 ![](https://i.imgur.com/HEp8hvA.png)
 2. 代码演示
-```
+
+
+ ```
 public class CountDownLatchDemo {
     public static void main(String[] args) throws InterruptedException {
         CountDownLatch countDownLatch = new CountDownLatch(6);
@@ -1140,7 +1142,7 @@ public class CountDownLatchDemo {
         System.out.println("秦帝国, 一统华夏");
     }
 }
-.
+
 enum CountryEnum {
     ONE(1, "齐"),
     TWO(2, "楚"),
@@ -1166,7 +1168,7 @@ enum CountryEnum {
         return null;
     }
 }
-```
+ ```
 
 ### CyclicBarrier ###
 CountDownLatch做加法, CyclicBarrier做减法
