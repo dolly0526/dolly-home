@@ -40,9 +40,7 @@ bin/spark-submit \
  ```
 3. YARN部署Spark流程图  
 ![](https://i.imgur.com/dOqCRik.png)
-4. YARN部署Spark流程图, 源码解析  
-![](https://i.imgur.com/JOMFF8q.png)
-5. spark-submit源码解析
+4. spark-submit源码解析
  ```
 (1) SparkSubmit
     
@@ -97,4 +95,54 @@ bin/spark-submit \
                     // 向Yarn提交应用，提交指令
                     -- yarnClient.submitApplication(appContext)
  ```
-
+5. ApplicationMaster源码解析
+ ```
+1) ApplicationMaster
+    
+    // 启动进程
+    -- main
+    
+        -- new ApplicationMasterArguments(args)
+        
+        // 创建应用管理器对象
+        -- new ApplicationMaster(amArgs, new YarnRMClient)
+        
+        // 运行
+        -- master.run
+        
+            // Cluster
+            -- runDriver
+            
+                // 启动用户应用
+                -- startUserApplication
+                
+                    // 获取用户应用的类的main方法
+                    -- userClassLoader.loadClass(args.userClass)
+      .getMethod("main", classOf[Array[String]])
+      
+                    // 启动Driver线程，执行用户类的main方法，
+                    -- new Thread().start()
+                    
+                // 注册AM
+                -- registerAM
+                
+                    // 获取yarn资源
+                    -- client.register
+                    
+                    // 分配资源
+                    -- allocator.allocateResources()
+                    
+                        -- handleAllocatedContainers
+                        
+                            -- runAllocatedContainers
+                            
+                                -- new ExecutorRunnable().run
+                                
+                                    -- startContainer
+                                    
+                                        // command = bin/java org.apache.spark.executor.CoarseGrainedExecutorBackend
+                                        -- prepareCommand
+ ```
+6. 
+7. YARN部署Spark流程图, 源码解析  
+![](https://i.imgur.com/JOMFF8q.png)
