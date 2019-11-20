@@ -16,6 +16,13 @@ sc.textFile("file:///app/software/spark/README.md")
 	.sortBy(_._2, false)
 	.foreach(println)
  ```
+3. 任务划分  
+RDD 任务切分中间分为：Application、Job、Stage 和 Task  
+1）Application：初始化一个 SparkContext 即生成一个 Application  
+2）Job：一个 Action 算子就会生成一个 Job  
+3）Stage：根据 RDD 之间的依赖关系的不同将 Job 划分成不同的 Stage，遇到一个宽依赖则划分一个 Stage  
+4）Task：Stage 是一个 TaskSet，将 Stage 划分的结果发送到不同的 Executor 执行即为一个Task  
+注意：Application->Job->Stage-> Task 每一层都是 1 对 n 的关系。
 
 ## 部署流程 ##
 1. YARN调度流程  
@@ -40,7 +47,12 @@ bin/spark-submit \
  ```
 3. YARN部署Spark流程图  
 ![](https://i.imgur.com/dOqCRik.png)
-4. spark-submit源码解析
+4. Spark源码中特殊的类
+ - Backend: 后台
+ - rpcEnv:  RPC
+ - amEndpoint: 终端
+ - RpcEndpointAddress: 终端地址
+5. spark-submit源码解析
  ```
 (1) SparkSubmit
     
@@ -95,7 +107,7 @@ bin/spark-submit \
                     // 向Yarn提交应用，提交指令
                     -- yarnClient.submitApplication(appContext)
  ```
-5. ApplicationMaster源码解析
+6. ApplicationMaster源码解析
  ```
 1) ApplicationMaster
     
@@ -143,6 +155,22 @@ bin/spark-submit \
                                         // command = bin/java org.apache.spark.executor.CoarseGrainedExecutorBackend
                                         -- prepareCommand
  ```
-6. 
-7. YARN部署Spark流程图, 源码解析  
+7. CoarseGrainedExecutorBackend源码解析
+ ```
+1) CoarseGrainedExecutorBackend
+    
+    -- main
+    
+        -- run
+        
+            -- onStart
+            
+                -- ref.ask[Boolean](RegisterExecutor
+            
+            -- receive
+            
+                --  case RegisteredExecutor
+                    -- new Executor
+ ```
+8. YARN部署Spark流程图 (源码级)  
 ![](https://i.imgur.com/JOMFF8q.png)
