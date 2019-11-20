@@ -20,11 +20,29 @@ sc.textFile("file:///app/software/spark/README.md")
 ## 部署流程 ##
 1. YARN调度流程  
 ![](https://i.imgur.com/7kWlpbG.png)
-2. YARN部署Spark流程图  
-![](https://i.imgur.com/dOqCRik.png)
-3. SparkSubmit类
+2. 演示指令  
+ ```  
+bin/spark-submit \
+--class org.apache.spark.examples.SparkPi \
+--num-executors 2 \
+--master yarn \
+--deploy-mode cluster \
+./examples/jars/spark-examples_2.11-2.1.1.jar \
+100
+
+bin/spark-submit \
+--class org.apache.spark.examples.SparkPi \
+--num-executors 2 \
+--master yarn \
+--deploy-mode client \
+./examples/jars/spark-examples_2.11-2.1.1.jar \
+100
  ```
-a. SparkSubmit
+3. YARN部署Spark流程图  
+![](https://i.imgur.com/dOqCRik.png)
+4. spark-submit源码解析
+ ```
+(1) SparkSubmit
     
     // 启动进程
     -- main
@@ -51,8 +69,9 @@ a. SparkSubmit
                 -- mainClass.getMethod("main", new Array[String](0).getClass)
                 // 调用main方法
                 -- mainMethod.invoke
-                
-b. Client
+             
+// org.apache.spark.deploy.yarn.Client   
+(2) Client
 
     -- main
     
@@ -76,4 +95,5 @@ b. Client
                     // 向Yarn提交应用，提交指令
                     -- yarnClient.submitApplication(appContext)
  ```
-4. 
+4. YARN部署Spark流程图, 源码解析  
+![](https://i.imgur.com/JOMFF8q.png)
