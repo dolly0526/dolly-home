@@ -40,7 +40,9 @@ bin/spark-submit \
  ```
 3. YARN部署Spark流程图  
 ![](https://i.imgur.com/dOqCRik.png)
-4. spark-submit源码解析
+4. YARN部署Spark流程图, 源码解析  
+![](https://i.imgur.com/JOMFF8q.png)
+5. spark-submit源码解析
  ```
 (1) SparkSubmit
     
@@ -95,5 +97,4 @@ bin/spark-submit \
                     // 向Yarn提交应用，提交指令
                     -- yarnClient.submitApplication(appContext)
  ```
-4. YARN部署Spark流程图, 源码解析  
-![](https://i.imgur.com/JOMFF8q.png)
+
