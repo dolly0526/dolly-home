@@ -1,11 +1,68 @@
 # Spark原理和源码 #
 2019/11/17 18:18:24 
 
-## 入门 ##
+## Spark Core ##
 1. 小故事  
 ![](https://i.imgur.com/uGo3gu9.png)
 2. RDD的理解  
 ![](https://i.imgur.com/7QDYWjB.png)
+3. RDD的特性  
+RDD表示只读的分区的数据集，对RDD进行改动，只能通过RDD的转换操作，由一个RDD得到一个新的RDD，新的RDD包含了从其他RDD衍生所必需的信息。RDDs之间存在依赖，RDD的执行是按照血缘关系延时计算的。如果血缘关系较长，可以通过持久化RDD来切断血缘关系。
+ - **分区**: RDD逻辑上是分区的，每个分区的数据是抽象存在的，计算的时候会通过一个compute函数得到每个分区的数据。如果RDD是通过已有的文件系统构建，则compute函数是读取指定文件系统中的数据，如果RDD是通过其他RDD转换而来，则compute函数是执行转换逻辑将其他RDD的数据进行转换。
+ - **只读**: RDD是只读的，要想改变RDD中的数据，只能在现有的RDD基础上创建新的RDD。由一个RDD转换到另一个RDD，可以通过丰富的操作算子实现，不再像MapReduce那样只能写map和reduce了. RDD的操作算子包括两类，一类叫做transformations，它是用来将RDD进行转化，构建RDD的血缘关系；另一类叫做actions，它是用来触发RDD的计算，得到RDD的相关计算结果或者将RDD保存的文件系统中。下图是RDD所支持的操作算子列表。
+ - **依赖**: RDDs通过操作算子进行转换，转换得到的新RDD包含了从其他RDDs衍生所必需的信息，RDDs之间维护着这种血缘关系，也称之为依赖。如下图所示，依赖包括两种，一种是窄依赖，RDDs之间分区是一一对应的，另一种是宽依赖，下游RDD的每个分区与上游RDD(也称之为父RDD)的每个分区都有关，是多对多的关系。
+ - **缓存**: 如果在应用程序中多次使用同一个RDD，可以将该RDD缓存起来，该RDD只有在第一次计算的时候会根据血缘关系得到分区的数据，在后续其他地方用到该RDD的时候，会直接从缓存处取而不用再根据血缘关系计算，这样就加速后期的重用。如下图所示，RDD-1经过一系列的转换后得到RDD-n并保存到hdfs，RDD-1在这一过程中会有个中间结果，如果将其缓存到内存，那么在随后的RDD-1转换到RDD-m这一过程中，就不会计算其之前的RDD-0了。
+ - **CheckPoint**: 虽然RDD的血缘关系天然地可以实现容错，当RDD的某个分区数据失败或丢失，可以通过血缘关系重建。但是对于长时间迭代型应用来说，随着迭代的进行，RDDs之间的血缘关系会越来越长，一旦在后续迭代过程中出错，则需要通过非常长的血缘关系去重建，势必影响性能。为此，RDD支持checkpoint将数据保存到持久化的存储中，这样就可以切断之前的血缘关系，因为checkpoint后的RDD不需要知道它的父RDDs了，它可以从checkpoint处拿到数据。
+4. groupByKey和reduceByKey
+ - 参考: [reduceByKey和groupByKey区别与用法](https://blog.csdn.net/weixin_41804049/article/details/80373741)
+ - groupByKey: groupByKey 也是对每个 key 进行操作，但只生成一个 sequence。
+
+```
+  /**
+   * Group the values for each key in the RDD into a single sequence. Allows controlling the
+   * partitioning of the resulting key-value pair RDD by passing a Partitioner.
+   * The ordering of elements within each group is not guaranteed, and may even differ
+   * each time the resulting RDD is evaluated.
+   *
+   * @note This operation may be very expensive. If you are grouping in order to perform an
+   * aggregation (such as a sum or average) over each key, using `PairRDDFunctions.aggregateByKey`
+   * or `PairRDDFunctions.reduceByKey` will provide much better performance.
+   *
+   * @note As currently implemented, groupByKey must be able to hold all the key-value pairs for any
+   * key in memory. If a key has too many values, it can result in an [[OutOfMemoryError]].
+   */
+  def groupByKey(partitioner: Partitioner): RDD[(K, Iterable[V])] = self.withScope {
+    // groupByKey shouldn't use map side combine because map side combine does not
+    // reduce the amount of data shuffled and requires all map side data be inserted
+    // into a hash table, leading to more objects in the old gen.
+    val createCombiner = (v: V) => CompactBuffer(v)
+    val mergeValue = (buf: CompactBuffer[V], v: V) => buf += v
+    val mergeCombiners = (c1: CompactBuffer[V], c2: CompactBuffer[V]) => c1 ++= c2
+    val bufs = combineByKeyWithClassTag[CompactBuffer[V]](
+	  //mapSideCombine设置为false, 在map端不会合并
+      createCombiner, mergeValue, mergeCombiners, partitioner, mapSideCombine = false)
+    bufs.asInstanceOf[RDD[(K, Iterable[V])]]
+  }
+```
+ - reduceByKey: 在一个(K,V)的 RDD 上调用，返回一个(K,V)的 RDD，使用指定的 reduce 函数，将相同
+key 的值聚合到一起，reduce 任务的个数可以通过第二个可选的参数来设置。
+
+```
+  /**
+   * Merge the values for each key using an associative and commutative reduce function. This will
+   * also perform the merging locally on each mapper before sending results to a reducer, similarly
+   * to a "combiner" in MapReduce.
+   */
+  def reduceByKey(partitioner: Partitioner, func: (V, V) => V): RDD[(K, V)] = self.withScope {
+	//mapSideCombine默认为true, 在map端会预先合并
+    combineByKeyWithClassTag[V]((v: V) => v, func, func, partitioner)
+  }
+```
+ - 区别:  
+a. reduceByKey：按照 key 进行聚合，在 shuffle 之前有 combine（预聚合）操作，返回结果
+是 RDD[k,v].  
+b. groupByKey：按照 key 进行分组，直接进行 shuffle。  
+c. 开发指导：reduceByKey 比 groupByKey，建议使用。但是需要注意是否会影响业务逻辑。
 
 ## 部署模式 ##
 1. 通用运行流程概述
@@ -51,7 +108,8 @@ bin/spark-submit \
  - rpcEnv:  RPC
  - amEndpoint: 终端
  - RpcEndpointAddress: 终端地址
-5. spark-submit源码解析
+5. SparkSubmit源码解析
+ - 我们在spark-submit时, 会按某一种规则输入编写命令, SparkSubmit类主要是把参数和命令进行封装, 通过反射加载执行任务的类, 并向RM提交任务, 之后的事情交给YARN处理.
 
 
  ```
@@ -109,6 +167,7 @@ bin/spark-submit \
                     -- yarnClient.submitApplication(appContext)
  ```
 6. ApplicationMaster源码解析
+ - ApplicationMaster类先会创建AM类, 然后加载用户的类的main方法, 之后AM就作为该任务的Driver; 启动Driver线程, 向YARN申请资源, 之后分配资源给NM, 起多个Executor后台线程
  ```
 1) ApplicationMaster
     
@@ -157,6 +216,7 @@ bin/spark-submit \
                                         -- prepareCommand
  ```
 7. CoarseGrainedExecutorBackend源码解析
+ - CoarseGrainedExecutorBackend类会起一个线程, 主要实现反向注册和接受返回信息
  ```
 1) CoarseGrainedExecutorBackend
     
@@ -165,12 +225,16 @@ bin/spark-submit \
         -- run
         
             -- onStart
+            	
+				//反向注册
+                -- ref.ask[Boolean](RegisterExecutor...
             
-                -- ref.ask[Boolean](RegisterExecutor
-            
+			//接收向driver注册executor的返回消息
             -- receive
             
                 --  case RegisteredExecutor
+					
+					//Executor准确来说, 是该类的一个属性
                     -- new Executor
  ```
 8. YARN部署Spark流程图
