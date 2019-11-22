@@ -5,72 +5,73 @@
 ### ArrayList ###
 0. 参考资料
  - [Java集合源码分析](https://www.cnblogs.com/xujian2014/tag/Java%E9%9B%86%E5%90%88%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/)
+
 1. `ArrayList list = new ArrayList();`  
 jdk7: 底层创建了长度为**10**的Object[]数组elementData  
 jdk8: 底层Object[]数组elementData初始化为{}, 并没有创建长度为10的数组(代码改了但注释没改)
- ```
-	/** Constructs an empty list with an initial capacity of ten. */
-	public ArrayList() {
-		this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
-	}
- ```
+```java
+/** Constructs an empty list with an initial capacity of ten. */
+public ArrayList() {
+    this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
+}
+```
 2. `list.add(123);`  
 jdk7: `elementData[0] = new Integer(123);`  
 jdk8: 第一次调用add()时, 底层才创建了长度**10**的数组, 并将数据123添加到elementData[0]  
- ```
-	/**
-	 * Appends the specified element to the end of this list.
-	 *
-	 * @param e element to be appended to this list
-	 * @return <tt>true</tt> (as specified by {@link Collection#add})
-	 */
-	public boolean add(E e) {
-		ensureCapacityInternal(size + 1);  // Increments modCount!!
-    	elementData[size++] = e;
-    	return true;
-	}
+ ```java
+/**
+ * Appends the specified element to the end of this list.
+ *
+ * @param e element to be appended to this list
+ * @return <tt>true</tt> (as specified by {@link Collection#add})
+ */
+public boolean add(E e) {
+    ensureCapacityInternal(size + 1);  // Increments modCount!!
+    elementData[size++] = e;
+    return true;
+}
 
-	private void ensureCapacityInternal(int minCapacity) {
-		ensureExplicitCapacity(calculateCapacity(elementData, minCapacity));
-	}
+private void ensureCapacityInternal(int minCapacity) {
+    ensureExplicitCapacity(calculateCapacity(elementData, minCapacity));
+}
 
-	private static int calculateCapacity(Object[] elementData, int minCapacity) {
-    	if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
-    	    return Math.max(DEFAULT_CAPACITY, minCapacity);
-    	}
-    	return minCapacity;
-	}
+private static int calculateCapacity(Object[] elementData, int minCapacity) {
+    if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
+        return Math.max(DEFAULT_CAPACITY, minCapacity);
+    }
+    return minCapacity;
+}
  ```
 3. `... list.add(11);`  
  - 先由**ensureExplicitCapacity**方法判断是否需要扩容; 如果此次的添加导致底层elementData数组容量不够, 则通过**grow**方法扩容
- ```
-	private void ensureExplicitCapacity(int minCapacity) {
-    	modCount++;
+ ```java
+private void ensureExplicitCapacity(int minCapacity) {
+    modCount++;
 
-    	// overflow-conscious code
-    	if (minCapacity - elementData.length > 0)
-        	grow(minCapacity);
-	}
+    // overflow-conscious code
+    if (minCapacity - elementData.length > 0)
+        grow(minCapacity);
+}
  ```
  - 默认情况下, 扩容为原来的容量的**1.5倍**, 同时需要将原有数组中的数据复制到新的数组中
- ```
-	/**
-	 * Increases the capacity to ensure that it can hold at least the
-	 * number of elements specified by the minimum capacity argument.
-	 *
-	 * @param minCapacity the desired minimum capacity
-	 */
-	private void grow(int minCapacity) {
-	    // overflow-conscious code
-	    int oldCapacity = elementData.length;
-	    int newCapacity = oldCapacity + (oldCapacity >> 1);
-	    if (newCapacity - minCapacity < 0)
-	        newCapacity = minCapacity;
-	    if (newCapacity - MAX_ARRAY_SIZE > 0)
-	        newCapacity = hugeCapacity(minCapacity);
-	    // minCapacity is usually close to size, so this is a win:
-	    elementData = Arrays.copyOf(elementData, newCapacity);
-	}
+ ```java
+/**
+ * Increases the capacity to ensure that it can hold at least the
+ * number of elements specified by the minimum capacity argument.
+ *
+ * @param minCapacity the desired minimum capacity
+ */
+private void grow(int minCapacity) {
+    // overflow-conscious code
+    int oldCapacity = elementData.length;
+    int newCapacity = oldCapacity + (oldCapacity >> 1);
+    if (newCapacity - minCapacity < 0)
+        newCapacity = minCapacity;
+    if (newCapacity - MAX_ARRAY_SIZE > 0)
+        newCapacity = hugeCapacity(minCapacity);
+    // minCapacity is usually close to size, so this is a win:
+    elementData = Arrays.copyOf(elementData, newCapacity);
+}
  ```
  - **建议**开发中使用带参的构造器: `ArrayList list = new ArrayList(int capacity);`
 4. jdk7中的ArrayList的对象的创建类似于单例的**饿汉式**; 而jdk8中的ArrayList的对象的创建, 类似于单例的**懒汉式**, 延迟了数组的创建, 节省内存
@@ -84,38 +85,38 @@ jdk7和jdk8中通过Vector()构造器创建对象时, 底层都创建了长度�
 ### LinkedList ###
 1. `LinkedList list = new LinkedList();`  
  - 内部声明了Node类型的first和last属性, 默认值为null
- ```
-	transient Node<E> first;
-	transient Node<E> last;
+ ```java
+transient Node<E> first;
+transient Node<E> last;
  ```
  - 其中, Node定义如下, 体现了LinkedList的双向链表的说法
- ```
-	private static class Node<E> {
-	    E item;
-	    Node<E> next;
-	    Node<E> prev;
+ ```java
+private static class Node<E> {
+    E item;
+    Node<E> next;
+    Node<E> prev;
 
-	    Node(Node<E> prev, E element, Node<E> next) {
-	        this.item = element;
-	        this.next = next;
-	        this.prev = prev;
-	    }
-	}
+    Node(Node<E> prev, E element, Node<E> next) {
+        this.item = element;
+        this.next = next;
+        this.prev = prev;
+    }
+}
  ```
 2. `list.add(123);` 创建了Node对象, 将123封装到该对象中
- ```
-    /** Links e as last element. */
-    void linkLast(E e) {
-        final Node<E> l = last;
-        final Node<E> newNode = new Node<>(l, e, null);
-        last = newNode;
-        if (l == null)
-            first = newNode;
-        else
-            l.next = newNode;
-        size++;
-        modCount++;
-    }
+ ```java
+/** Links e as last element. */
+void linkLast(E e) {
+    final Node<E> l = last;
+    final Node<E> newNode = new Node<>(l, e, null);
+    last = newNode;
+    if (l == null)
+        first = newNode;
+    else
+        l.next = newNode;
+    size++;
+    modCount++;
+}
  ```
 
 ## Map ##
@@ -136,62 +137,62 @@ jdk7和jdk8中通过Vector()构造器创建对象时, 底层都创建了长度�
 如果key1的哈希值和已经存在的某一个数据(key2-value2)的哈希值相同，继续比较：调用key1所在类的equals(key2)方法，比较：
 如果equals()返回false:此时key1-value1添加成功。----情况3  
 如果equals()返回true:使用value1替换value2。
- ```
-    /**
-     * Implements Map.put and related methods.
-     *
-     * @param hash hash for key
-     * @param key the key
-     * @param value the value to put
-     * @param onlyIfAbsent if true, don't change existing value
-     * @param evict if false, the table is in creation mode.
-     * @return previous value, or null if none
-     */
-    final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
-                   boolean evict) {
-        Node<K,V>[] tab; Node<K,V> p; int n, i;
-        if ((tab = table) == null || (n = tab.length) == 0)
-            n = (tab = resize()).length;
-        if ((p = tab[i = (n - 1) & hash]) == null)
-            tab[i] = newNode(hash, key, value, null);
+ ```java
+/**
+ * Implements Map.put and related methods.
+ *
+ * @param hash hash for key
+ * @param key the key
+ * @param value the value to put
+ * @param onlyIfAbsent if true, don't change existing value
+ * @param evict if false, the table is in creation mode.
+ * @return previous value, or null if none
+ */
+final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
+               boolean evict) {
+    Node<K,V>[] tab; Node<K,V> p; int n, i;
+    if ((tab = table) == null || (n = tab.length) == 0)
+        n = (tab = resize()).length;
+    if ((p = tab[i = (n - 1) & hash]) == null)
+        tab[i] = newNode(hash, key, value, null);
+    else {
+        Node<K,V> e; K k;
+        if (p.hash == hash &&
+            ((k = p.key) == key || (key != null && key.equals(k))))
+            e = p;
+        else if (p instanceof TreeNode)
+            e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
         else {
-            Node<K,V> e; K k;
-            if (p.hash == hash &&
-                ((k = p.key) == key || (key != null && key.equals(k))))
-                e = p;
-            else if (p instanceof TreeNode)
-                e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
-            else {
-                for (int binCount = 0; ; ++binCount) {
-                    if ((e = p.next) == null) {
-                        p.next = newNode(hash, key, value, null);
-                        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
-                            treeifyBin(tab, hash);
-                        break;
-                    }
-                    if (e.hash == hash &&
-                        ((k = e.key) == key || (key != null && key.equals(k))))
-                        break;
-                    p = e;
+            for (int binCount = 0; ; ++binCount) {
+                if ((e = p.next) == null) {
+                    p.next = newNode(hash, key, value, null);
+                    if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                        treeifyBin(tab, hash);
+                    break;
                 }
-            }
-            if (e != null) { // existing mapping for key
-                V oldValue = e.value;
-                if (!onlyIfAbsent || oldValue == null)
-                    e.value = value;
-                afterNodeAccess(e);
-                return oldValue;
+                if (e.hash == hash &&
+                    ((k = e.key) == key || (key != null && key.equals(k))))
+                    break;
+                p = e;
             }
         }
-        ++modCount;
-        if (++size > threshold)
-            resize();
-        afterNodeInsertion(evict);
-        return null;
+        if (e != null) { // existing mapping for key
+            V oldValue = e.value;
+            if (!onlyIfAbsent || oldValue == null)
+                e.value = value;
+            afterNodeAccess(e);
+            return oldValue;
+        }
     }
+    ++modCount;
+    if (++size > threshold)
+        resize();
+    afterNodeInsertion(evict);
+    return null;
+}
  ```
  - hash函数: 首先获取对象的hashCode()值，然后将hashCode值右移16位，然后将右移后的值与原来的hashCode做异或运算，返回结果。（其中h>>>16，在JDK1.8中，优化了高位运算的算法，使用了零扩展，无论正数还是负数，都在高位插入0）。
- ```
+ ```java
 static final int hash(Object key) {
     int h;
     return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
@@ -203,108 +204,108 @@ static final int hash(Object key) {
 默认的扩容方式：扩容为原来容量的**2倍**，并将原有的数据复制过来。
 2. jdk8中的HashMap  
  - new HashMap(): 底层没有创建一个长度为16的数组
- ```
-    /**
-     * Constructs an empty <tt>HashMap</tt> with the default initial capacity
-     * (16) and the default load factor (0.75).
-     */
-    public HashMap() {
-        this.loadFactor = DEFAULT_LOAD_FACTOR; // all other fields defaulted
-    }
+ ```java
+/**
+ * Constructs an empty <tt>HashMap</tt> with the default initial capacity
+ * (16) and the default load factor (0.75).
+ */
+public HashMap() {
+    this.loadFactor = DEFAULT_LOAD_FACTOR; // all other fields defaulted
+}
  ```
  - jdk 8底层的数组是：Node[], 而非Entry[]
- ```
-    /**
-     * Basic hash bin node, used for most entries.  (See below for
-     * TreeNode subclass, and in LinkedHashMap for its Entry subclass.)
-     */
-    static class Node<K,V> implements Map.Entry<K,V> {
-        final int hash;
-        final K key;
-        V value;
-        Node<K,V> next;
-		...
-	}
+ ```java
+/**
+ * Basic hash bin node, used for most entries.  (See below for
+ * TreeNode subclass, and in LinkedHashMap for its Entry subclass.)
+ */
+static class Node<K,V> implements Map.Entry<K,V> {
+    final int hash;
+    final K key;
+    V value;
+    Node<K,V> next;
+    ...
+}
  ```
  - 首次调用put()方法时，底层创建长度为**16**的数组
- ```
-    /**
-     * Initializes or doubles table size.  If null, allocates in
-     * accord with initial capacity target held in field threshold.
-     * Otherwise, because we are using power-of-two expansion, the
-     * elements from each bin must either stay at same index, or move
-     * with a power of two offset in the new table.
-     *
-     * @return the table
-     */
-    final Node<K,V>[] resize() {
-        Node<K,V>[] oldTab = table;
-        int oldCap = (oldTab == null) ? 0 : oldTab.length;
-        int oldThr = threshold;
-        int newCap, newThr = 0;
-        if (oldCap > 0) {
-            if (oldCap >= MAXIMUM_CAPACITY) {
-                threshold = Integer.MAX_VALUE;
-                return oldTab;
-            }
-            else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
-                     oldCap >= DEFAULT_INITIAL_CAPACITY)
-                newThr = oldThr << 1; // double threshold
+ ```java
+/**
+ * Initializes or doubles table size.  If null, allocates in
+ * accord with initial capacity target held in field threshold.
+ * Otherwise, because we are using power-of-two expansion, the
+ * elements from each bin must either stay at same index, or move
+ * with a power of two offset in the new table.
+ *
+ * @return the table
+ */
+final Node<K,V>[] resize() {
+    Node<K,V>[] oldTab = table;
+    int oldCap = (oldTab == null) ? 0 : oldTab.length;
+    int oldThr = threshold;
+    int newCap, newThr = 0;
+    if (oldCap > 0) {
+        if (oldCap >= MAXIMUM_CAPACITY) {
+            threshold = Integer.MAX_VALUE;
+            return oldTab;
         }
-        else if (oldThr > 0) // initial capacity was placed in threshold
-            newCap = oldThr;
-        else {               // zero initial threshold signifies using defaults
-            newCap = DEFAULT_INITIAL_CAPACITY;
-            newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
-        }
-        if (newThr == 0) {
-            float ft = (float)newCap * loadFactor;
-            newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
-                      (int)ft : Integer.MAX_VALUE);
-        }
-        threshold = newThr;
-        @SuppressWarnings({"rawtypes","unchecked"})
-        Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
-        table = newTab;
-		...
-	}
+        else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
+                 oldCap >= DEFAULT_INITIAL_CAPACITY)
+            newThr = oldThr << 1; // double threshold
+    }
+    else if (oldThr > 0) // initial capacity was placed in threshold
+        newCap = oldThr;
+    else {               // zero initial threshold signifies using defaults
+        newCap = DEFAULT_INITIAL_CAPACITY;
+        newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+    }
+    if (newThr == 0) {
+        float ft = (float)newCap * loadFactor;
+        newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
+                  (int)ft : Integer.MAX_VALUE);
+    }
+    threshold = newThr;
+    @SuppressWarnings({"rawtypes","unchecked"})
+    Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
+    table = newTab;
+    ...
+}
  ```
  - jdk7底层结构只有：数组 + 链表；jdk8中底层结构：数组 + 链表 + 红黑树。  
  - 形成链表时，**七上八下**（jdk7:新的元素指向旧的元素, jdk8：旧的元素指向新的元素）
- ```
-    if ((e = p.next) == null) {
-        p.next = newNode(hash, key, value, null);
-        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
-            treeifyBin(tab, hash);
-        break;
-    }
+ ```java
+if ((e = p.next) == null) {
+    p.next = newNode(hash, key, value, null);
+    if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+        treeifyBin(tab, hash);
+    break;
+}
  ```
  - 当数组的某一个索引位置上的元素以链表形式存在的数据个数 > 8 且当前Bucket数组的长度 > 64时，此时此索引位置上的所数据改为使用**红黑树**存储。
- ```
-    /**
-     * Replaces all linked nodes in bin at index for given hash unless
-     * table is too small, in which case resizes instead.
-     */
-    final void treeifyBin(Node<K,V>[] tab, int hash) {
-        int n, index; Node<K,V> e;
-        if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
-            resize();
-        else if ((e = tab[index = (n - 1) & hash]) != null) {
-            TreeNode<K,V> hd = null, tl = null;
-            do {
-                TreeNode<K,V> p = replacementTreeNode(e, null);
-                if (tl == null)
-                    hd = p;
-                else {
-                    p.prev = tl;
-                    tl.next = p;
-                }
-                tl = p;
-            } while ((e = e.next) != null);
-            if ((tab[index] = hd) != null)
-                hd.treeify(tab);
-        }
+ ```java
+/**
+ * Replaces all linked nodes in bin at index for given hash unless
+ * table is too small, in which case resizes instead.
+ */
+final void treeifyBin(Node<K,V>[] tab, int hash) {
+    int n, index; Node<K,V> e;
+    if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
+        resize();
+    else if ((e = tab[index = (n - 1) & hash]) != null) {
+        TreeNode<K,V> hd = null, tl = null;
+        do {
+            TreeNode<K,V> p = replacementTreeNode(e, null);
+            if (tl == null)
+                hd = p;
+            else {
+                p.prev = tl;
+                tl.next = p;
+            }
+            tl = p;
+        } while ((e = e.next) != null);
+        if ((tab[index] = hd) != null)
+            hd.treeify(tab);
     }
+}
  ```
 3. 一些常量:  
 DEFAULT_INITIAL_CAPACITY: HashMap的默认容量，16  
@@ -321,47 +322,47 @@ MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的Bucket表容量: 64
 0. 参考资料
  - [深入理解Map，HashMap，LinkedHashMap，TreeMap等](https://blog.csdn.net/haihui_yang/article/details/80642520)
 1. 调用HashMap的putVal方法, 重写了newNode方法
- ```
-    Node<K,V> newNode(int hash, K key, V value, Node<K,V> e) {
-        LinkedHashMap.Entry<K,V> p =
-            new LinkedHashMap.Entry<K,V>(hash, key, value, e);
-        linkNodeLast(p);
-        return p;
-    }
+ ```java
+Node<K,V> newNode(int hash, K key, V value, Node<K,V> e) {
+    LinkedHashMap.Entry<K,V> p =
+        new LinkedHashMap.Entry<K,V>(hash, key, value, e);
+    linkNodeLast(p);
+    return p;
+}
 
-    /**
-     * HashMap.Node subclass for normal LinkedHashMap entries.
-     */
-    static class Entry<K,V> extends HashMap.Node<K,V> {
-		//before和after用于记录添加元素的顺序
-        Entry<K,V> before, after;
-        Entry(int hash, K key, V value, Node<K,V> next) {
-            super(hash, key, value, next);
-        }
+/**
+ * HashMap.Node subclass for normal LinkedHashMap entries.
+ */
+static class Entry<K,V> extends HashMap.Node<K,V> {
+    //before和after用于记录添加元素的顺序
+    Entry<K,V> before, after;
+    Entry(int hash, K key, V value, Node<K,V> next) {
+        super(hash, key, value, next);
     }
+}
  ```
 
 ### HashSet ###
 底层还是用HashMap实现
- ```
-    /**
-     * Adds the specified element to this set if it is not already present.
-     * More formally, adds the specified element <tt>e</tt> to this set if
-     * this set contains no element <tt>e2</tt> such that
-     * <tt>(e==null&nbsp;?&nbsp;e2==null&nbsp;:&nbsp;e.equals(e2))</tt>.
-     * If this set already contains the element, the call leaves the set
-     * unchanged and returns <tt>false</tt>.
-     *
-     * @param e element to be added to this set
-     * @return <tt>true</tt> if this set did not already contain the specified
-     * element
-     */
-    public boolean add(E e) {
-        return map.put(e, PRESENT)==null;
-    }
+ ```java
+/**
+ * Adds the specified element to this set if it is not already present.
+ * More formally, adds the specified element <tt>e</tt> to this set if
+ * this set contains no element <tt>e2</tt> such that
+ * <tt>(e==null&nbsp;?&nbsp;e2==null&nbsp;:&nbsp;e.equals(e2))</tt>.
+ * If this set already contains the element, the call leaves the set
+ * unchanged and returns <tt>false</tt>.
+ *
+ * @param e element to be added to this set
+ * @return <tt>true</tt> if this set did not already contain the specified
+ * element
+ */
+public boolean add(E e) {
+    return map.put(e, PRESENT)==null;
+}
 
-    // Dummy value to associate with an Object in the backing Map
-    private static final Object PRESENT = new Object();
+// Dummy value to associate with an Object in the backing Map
+private static final Object PRESENT = new Object();
  ```
 
 
@@ -678,9 +679,9 @@ c. 每个方法执行的同时都会创建一个栈帧，用于存储局部变�
 ## 堆 ##
 ### 基础知识 ###
 1. 一个JVM实例只存在一个堆内存，堆内存的大小是可以调节的。类加载器读取了类文件后，需要把类、方法、常变量放到堆内存中，保存所有引用类型的真实信息，以方便执行器执行，堆内存**在逻辑上**分为三部分：  
-Young Generation Space  	**新生区**  		Young/New  
-Tenure generation space  	**养老区**  		Old/Tenure  
-Permanent Space  			**永久区**  		Perm  
+	Young Generation Space  	**新生区**  		Young/New  
+	Tenure generation space  	**养老区**  		Old/Tenure  
+	Permanent Space  			**永久区**  		Perm  
 注: jdk1.8中没有永久区了, 改为了**元空间** (Meta Space)
 2. (Java7之前) 一个JVM实例只存在一个堆内存，堆内存的大小是可以调节的。类加载器读取了类文件后，需要把类、方法、常变量放到堆内存中，保存所有引用类型的真实信息，以方便执行器执行。  
 ![](https://i.imgur.com/s0MfSaI.png)
@@ -1535,7 +1536,7 @@ d. 坑题: 如何解释-Xms和-Xmx?
 这两个参数仍为**XX参数**:  
 -Xms == -XX:InitialHeapSize  
 -Xmx == -XX:MaxHeapSize
- ```  
+ ```
 2. 查看初始默认值  
  - `java -XX:+PrintFlagsInitial` -> 查看初始参数
  - `java -XX:+PrintFlagsFinal -version` -> 查看修改后的参数 (:=表示被修改过的参数, =表示初)始值

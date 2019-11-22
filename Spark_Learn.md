@@ -77,7 +77,7 @@ c. 开发指导：reduceByKey 比 groupByKey，建议使用。但是需要注意
 1. YARN调度流程  
 ![](https://i.imgur.com/7kWlpbG.png)
 2. 任务提交流程
- - 在 YARN Cluster 模式下，任务提交后会和 ResourceManager 通讯申请启动ApplicationMaster，随后 ResourceManager 分配 container，在合适的 NodeManager上启动 ApplicationMaster，此时的 ApplicationMaster 就是 Driver。Driver 启动后向 ResourceManager 申请 Executor 内存，ResourceManager 接到ApplicationMaster 的资源申请后会分配 container，然后在合适的 NodeManager 上启动 Executor 进程，Executor 进程启动后会向 Driver 反向注册，Executor 全部注册完成后 Driver 开始执行 main 函数，之后执行到 Action 算子时，触发一个 job，并根据宽依赖开始划分 stage，每个 stage 生成对应的 taskSet，之后将 task 分发到各个Executor上执行。
+ - 在 YARN Cluster 模式下，任务提交后会和 ResourceManager 通讯申请启动ApplicationMaster，随后 ResourceManager 分配 container，在合适的 NodeManager上启动 ApplicationMaster，此时的ApplicationMaster 就是 Driver。Driver 启动后向 ResourceManager 申请 Executor 内存，ResourceManager 接到ApplicationMaster 的资源申请后会分配 container，然后在合适的 NodeManager 上启动 Executor 进程，Executor 进程启动后会向 Driver 反向注册，Executor 全部注册完成后 Driver 开始执行 main 函数，之后执行到 Action 算子时，触发一个 job，并根据宽依赖开始划分 stage，每个 stage 生成对应的 taskSet，之后将 task 分发到各个Executor上执行。
  - 图解  
 ![](https://i.imgur.com/EkOBQuJ.png)
  - 提交一个 Spark 应用程序，首先通过 Client 向 ResourceManager 请求启动一个Application，同时检查是否有足够的资源满足 Application 的需求，如果资源条件满足，则准备 ApplicationMaster 的启动上下文，交给 ResourceManager，并循环监控Application 状态。当提交的资源队列中有资源时，ResourceManager 会在某个 NodeManager 上启动 ApplicationMaster 进程，ApplicationMaster 会单独启动 Driver 后台线程，当Driver 启动后，ApplicationMaster 会通过本地的 RPC 连接 Driver，并开始向ResourceManager 申请 Container 资源运行 Executor 进程（一个 Executor 对应与一个Container），当 ResourceManager 返回 Container 资源，ApplicationMaster 则在对应的 Container 上启动 Executor。Driver 线程主要是初始化 SparkContext 对象，准备运行所需的上下文，然后一方面保持与 ApplicationMaster 的 RPC 连接，通过 ApplicationMaster 申请资源，另一方面根据用户业务逻辑开始调度任务，将任务下发到已有的空闲 Executor 上。当 ResourceManager 向 ApplicationMaster 返 回 Container 资 源 时 ，ApplicationMaster 就尝试在对应的 Container 上启动 Executor 进程，Executor 进程起来后，会向 Driver 反向注册，注册成功后保持与 Driver 的心跳，同时等待 Driver分发任务，当分发的任务执行完毕后，将任务状态上报给 Driver。从上述时序图可知，Client 只负责提交 Application 并监控 Application 的状态。对于 Spark 的任务调度主要是集中在两个方面: **资源申请和任务分发**，其主要是通过 ApplicationMaster、Driver 以及 Executor 之间来完成。
@@ -86,7 +86,7 @@ c. 开发指导：reduceByKey 比 groupByKey，建议使用。但是需要注意
 3. 演示指令
 
 
- ```  
+ ```
 bin/spark-submit \
 --class org.apache.spark.examples.SparkPi \
 --num-executors 2 \
@@ -307,4 +307,10 @@ Job由saveAsTextFile触发，该Job由RDD-3和saveAsTextFile方法组成，根�
 ![](https://i.imgur.com/c2bl5ES.png)
 4. 图中，将TaskSetManager加入rootPool调度池中之后，调用SchedulerBackend的riviveOffers方法给driverEndpoint发送ReviveOffer消息；driverEndpoint收到ReviveOffer消息后调用makeOffers方法，过滤出活跃状态的Executor（这些Executor都是任务启动时反向注册到Driver的Executor），然后将Executor封装成WorkerOffer对象；准备好计算资源（WorkerOffer）后，taskScheduler基于这些资源调用resourceOffer在Executor上分配task。
 
-## Shuffle解析 ##
+## 问题与调优 ##
+### 数据倾斜 ###
+0. 参考资料
+ - [Spark性能优化之道——解决Spark数据倾斜（Data Skew）的N种姿势](https://www.cnblogs.com/cssdongl/p/6594298.html)
+
+## Spark Streaming ##
+### Spark Streaming + Kafka ###

@@ -582,6 +582,8 @@ hbase.regionserver.optionalcacheflushinterval （默认 1 小时）。
 4）分别在 Block Cache（读缓存），MemStore 和 Store File（HFile）中查询目标数据（**同时找**，只返回符合条件的时间戳对应的数据），并将查到的所有数据进行合并。此处所有数据是指同一条数据的不同版本（time stamp）或者不同的类型（Put/Delete）。  
 5）将**从文件中查询到的数据块**（Block，HFile 数据存储单元，默认大小为 64KB）缓存到 Block Cache。  
 6）将合并后的最终结果返回给客户端。
+7）图解  
+![](https://i.imgur.com/MWu3rbJ.png)
 
 ## StoreFile Compaction ##
 1. 由于memstore每次刷写都会生成一个新的HFile，且同一个字段的不同版本（timestamp）和不同类型（Put/Delete）有可能会分布在不同的HFile中，因此查询时需要遍历所有的HFile。为了减少 HFile 的个数，以及清理掉过期和删除的数据，会进行 StoreFile Compaction。  
