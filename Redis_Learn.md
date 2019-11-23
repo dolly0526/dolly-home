@@ -66,6 +66,9 @@ c. Redis支持数据的备份，即master-slave模式的数据备份
 ![](https://i.imgur.com/xUwMmYD.jpg)
 
 ### Zset ###
+
+- 参考: [跳表和红黑树和二叉树](https://blog.csdn.net/lusic01/article/details/92001898)
+
 - sorted set：有序集合
 - Redis zset 和 set 一样也是string类型元素的集合, 且不允许重复的成员, 不同的是每个元素都会关联一个double类型的分数。
 - Redis正是通过分数来为集合中的成员进行从小到大的排序。zset的成员是唯一的, 但分数(score)却可以重复。
@@ -107,10 +110,10 @@ redis.conf 配置项说明如下：
 9. 指定在多长时间内，有多少次更新操作，就将数据同步到数据文件，可以多个条件配合
  - save [seconds] [changes]  
  - Redis默认配置文件中提供了三个条件：  
-  save 900 1  
-  save 300 10  
-  save 60 10000  
-  分别表示900秒（15分钟）内有1个更改，300秒（5分钟）内有10个更改以及60秒内有10000个更改。
+    save 900 1  
+    save 300 10  
+    save 60 10000  
+    分别表示900秒（15分钟）内有1个更改，300秒（5分钟）内有10个更改以及60秒内有10000个更改。
 10. 指定存储至本地数据库时是否压缩数据，默认为yes，Redis采用LZF压缩，如果为了节省CPU时间，可以关闭该选项，但会导致数据库文件变的巨大
  - rdbcompression yes
 11. 指定本地数据库文件名，默认值为dump.rdb
@@ -180,9 +183,9 @@ b. Fork的时候，内存中的数据被克隆了一份，大致2倍的膨胀性
 3. 配置位置  
 ![](https://i.imgur.com/zjHGpui.jpg)
 4. 优势:  
-a. 每修改同步：appendfsync always		同步持久化 每次发生数据变更会被立即记录到磁盘  性能较差但数据完整性比较好  
-b. 每秒同步：appendfsync everysec	异步操作，每秒记录   如果一秒内宕机，有数据丢失  
-c. 不同步：appendfsync no	从不同步
+	a. 每修改同步：appendfsync always		同步持久化 每次发生数据变更会被立即记录到磁盘  性能较差但数据完整性比较好  
+	b. 每秒同步：appendfsync everysec	异步操作，每秒记录   如果一秒内宕机，有数据丢失  
+	c. 不同步：appendfsync no	从不同步
 5. 劣势:  
 a. 相同数据集的数据而言aof文件要远大于RDB文件，恢复速度慢于RDB  
 b. AOF运行效率要慢于rdb,每秒同步策略效率较好，不同步效率和RDB相同
@@ -237,7 +240,7 @@ b. AOF运行效率要慢于rdb,每秒同步策略效率较好，不同步效率�
 ![](https://i.imgur.com/kDlhrIB.jpg)
  - 一组sentinel能同时监控多个Master
 6. 复制的缺点: 由于所有的写操作都是先在Master上操作，然后同步更新到Slave上，所以从Master同步到Slave机器有一定的延迟，当系统很繁忙的时候，延迟问题会更加严重，Slave机器数量的增加也会使这个问题更加严重。(复制延时)
- 
+
 ## P6面试题 ##
 ![](https://i.imgur.com/XaNeGcO.png)  
 ![](https://i.imgur.com/d35Cc4I.png)

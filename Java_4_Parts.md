@@ -407,6 +407,10 @@ private static final Object PRESENT = new Object();
  - 判断/干活/通知  
  - 防止虚假唤醒
 
+## 进程调度算法
+
+[Linux常见的进程调度算法](https://www.cnblogs.com/alantu2018/p/8460451.html)
+
 ## 并发/并行 ##
 并发: 多个线程抢同一份资源, 偏重于多个任务交替执行  
 并行: 多件事情同时发生, 真正的同时执行
@@ -590,6 +594,9 @@ class ShareData {
 
 ## synchronized ##
 0. 参考资料: 
+- [Synchronized的实现原理](https://blog.csdn.net/u010338802/article/details/79945976)
+- [JAVA并发-Monitor简介](https://blog.csdn.net/ignorewho/article/details/80854625)
+
  - [Java并发编程：Synchronized及其实现原理](https://www.cnblogs.com/paddix/p/5367116.html)  
  - [synchronized锁定的到底是什么？](https://www.zhihu.com/question/57794716/answer/606126905)
 1. 一个对象里面如果有多个synchronized方法，某一个时刻内，只要一个线程去调用其中的一个synchronized方法了，其它的线程都只能等待；换句话说，某一个时刻内，只能有唯一一个线程去访问这些synchronized方法
@@ -606,6 +613,12 @@ class ShareData {
 ## AQS ##
 - [并发编程面试必备：AQS 原理以及 AQS 同步组件总结](https://mp.weixin.qq.com/s?__biz=Mzg2OTA0Njk0OA==&mid=2247484832&amp;idx=1&amp;sn=f902febd050eac59d67fc0804d7e1ad5&source=41#wechat_redirect)
 - [AQS原理](https://blog.csdn.net/liangwenmail/article/details/80991516)
+
+## 线程间同步的方式
+
+- [JAVA中线程同步的方法（7种）汇总](https://www.cnblogs.com/soundcode/p/6295910.html)
+- [Java--读写锁的实现原理](https://blog.csdn.net/yupi1057/article/details/80787013#)
+- [Threadlocal](https://www.jianshu.com/p/3c5d7f09dfbd)
 
 # 虚拟机 #
 2019/10/15 14:51:12 
@@ -628,7 +641,9 @@ public class MyObject {
  ```
 4. 双亲委派模型(我爸是李刚, 有事找我爹, 往上捅):  
 当一个类收到了类加载请求，他首先不会尝试自己去加载这个类，而是把这个请求委派给父类去完成，每一个层次类加载器都是如此，因此所有的加载请求都应该传送到启动类加载其中，只有当父类加载器反馈自己无法完成这个请求的时候（在它的加载路径下没有找到所需加载的Class），子类加载器才会尝试自己去加载。 
-5. 沙箱安全机制: 采用双亲委派的一个好处是比如加载位于**rt.jar**包中的类java.lang.Object，不管是哪个加载器加载这个类，最终都是委托给顶层的启动类加载器进行加载，这样就保证了使用不同的类加载器最终得到的都是同样一个Object对象，防止Java原生的类被污染。 
+5. 沙箱安全机制:   
+参考: [classloader 结构，是否可以自己定义一个 java.lang.String 类，为什么？ 双亲代理机制。](https://www.cnblogs.com/liuheng0315/p/7160794.html)  
+采用双亲委派的一个好处是比如加载位于**rt.jar**包中的类java.lang.Object，不管是哪个加载器加载这个类，最终都是委托给顶层的启动类加载器进行加载，这样就保证了使用不同的类加载器最终得到的都是同样一个Object对象，防止Java原生的类被污染。 
 6. Execution Engine执行引擎负责解释命令，提交操作系统执行。 
 
 ## native ##
@@ -716,6 +731,9 @@ c. SurvivorTo和SurvivorFrom互换
  - 因此，默认情况下，元空间的大小仅受本地内存限制。类的元数据放入 native memory, 字符串池和类的静态变量放入java堆中，这样可以加载多少类的元数据就不再由MaxPermSize 控制, 而由系统的实际可用空间来控制。
 
 ### 参数调优 ###
+
+参考: [jvm系列(十):如何优化Java GC「译」](https://www.cnblogs.com/ityouknow/p/7653129.html)
+
 1. gc模型  
 **jdk7:** ![](https://i.imgur.com/X6VxUDR.png)  
 **jdk8:** ![](https://i.imgur.com/bOpYvSR.png)
@@ -806,7 +824,29 @@ a. Mark阶段的开销与存活对像的数量成正比，这点上说来，对�
 b. Sweep阶段的开销与所管理区域的大小形正相关，但Sweep“就地处决”的特点，回收的过程没有对像的移动。使其相对其它有对像移动步骤的回收算法，仍然是效率最好的。但是需要解决内存碎片问题。  
 c. Compact阶段的开销与存活对像的数据成开比，如上一条所描述，对于大量对像的移动是很大开销的，做为老年代的第一选择并不合适。
 
-#### 面试题 ####
+## JVM启动的线程
+
+参考: [JVM进程启动会启动哪些线程？](https://www.cnblogs.com/jiangwangxiang/p/9094006.html)
+
+```java
+/**
+ * 5-Attach Listener
+ * 4-Signal Dispatcher
+ * 3-Finalizer
+ * 2-Reference Handler
+ * 1-main
+ */
+public class ThreadTest {
+    public static void main(String[] args) {
+        ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+        ThreadInfo[] threadInfos = threadMXBean.dumpAllThreads(false, false);
+        for (ThreadInfo threadInfo : threadInfos)
+            System.out.println(threadInfo.getThreadId() + "-" + threadInfo.getThreadName());
+    }
+}
+```
+
+## 面试题 ##
 - JVM内存模型以及分区，需要详细到每个区放什么
 - 堆里面的分区：Eden，survival from to，老年代，各自的特点。
 - GC的三种收集方法：标记清除、标记整理、复制算法的原理与特点，分别用在什么地方
@@ -1325,7 +1365,7 @@ class MyResource {
 }
 ```
 
-## Synchronized和Lock的区别 ##
+## synchronized和Lock的区别 ##
 ![](https://i.imgur.com/0jWTTkP.png)
 
 ## Callable接口 ##
@@ -1361,6 +1401,9 @@ class MyThread implements Callable<Integer> {
 ```
 
 ## 线程池 ##
+
+0. 参考: [ThreadPoolExecutor线程池及线程扩展策略](https://blog.csdn.net/zhongxiangbo/article/details/70882309)
+
 1. 优势  
 ![](https://i.imgur.com/sul1J3Y.png)
 2. 常用的3种方式(jdk8之前)
@@ -1781,3 +1824,7 @@ a. jps(虚拟机进程状况工具)
 b. jinfo(Java配置信息工具)
 c. jmap(内存映像工具)
 d. jstat(统计信息监控工具)
+
+4. 内存管理
+
+[理解 Linux 的虚拟内存](https://www.cnblogs.com/zhenbianshu/p/10300769.html)

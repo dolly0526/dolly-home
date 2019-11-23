@@ -91,6 +91,9 @@ d. ALTER TABLE tbl_name ADD FULLTEXT index_name (column_list):该语句指定了
 
 ### 结构 ###
 0. 参考资料: 
+- [MySQL索引底层实现原理](https://www.cnblogs.com/boothsun/p/8970952.html)
+- [b树和b+树的区别](https://www.cnblogs.com/xueqiuqiu/articles/8779029.html)
+
  - [BTree和B+Tree详解](https://www.cnblogs.com/vianzhang/p/7922426.html)
  - [MySQL索引原理及BTree（B-/+Tree）结构详解](https://blog.csdn.net/u013967628/article/details/84305511)
  - [记一次腾讯面试：有了二叉查找树、平衡树（AVL）为啥还需要红黑树？](https://zhuanlan.zhihu.com/p/72505589)
@@ -293,3 +296,12 @@ b. set global slow_query_log=1;
 ![](https://i.imgur.com/6igZ7nx.png)
  - 什么样的SQL才会记录到慢查询日志中?  
 ![](https://i.imgur.com/I2STH3p.png)
+
+## 热备份和冷备份
+
+[MySQL数据库的热备份和冷备份](https://www.cnblogs.com/wawahaha/p/4483741.html)
+
+## 视图/存储过程
+
+[MySQL（十一）视图及存储过程](https://www.cnblogs.com/imyalost/p/6510065.html)
+
