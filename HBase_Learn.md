@@ -2,9 +2,10 @@
 2019/9/18 23:19:40  
 
 ## 参考资料 ##
-- [有态度的HBase/Spark/BigData](http://hbasefly.com/?vilqlm=bnem43&xgrony=vo0822)  
-- [Openinx Blog](http://openinx.github.io/)  
-- [岑玉海-hbase源码系列](https://www.cnblogs.com/cenyuhai/tag/hbase%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/)  
+- [有态度的HBase/Spark/BigData - HBase](http://hbasefly.com/?vilqlm=bnem43&xgrony=vo0822)  
+- [岑玉海 - hbase源码系列](https://www.cnblogs.com/cenyuhai/tag/hbase%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/) 
+- [岑玉海 - hbase](https://www.cnblogs.com/cenyuhai/tag/hbase/ )
+-  [Openinx Blog](http://openinx.github.io/)  
 - 《尚硅谷大数据技术之HBase》
 - 《HBase原理与实践》
 - 《HBase不睡觉书》
@@ -16,6 +17,11 @@
 ![](https://i.imgur.com/D7khY0x.png)
 
 ## 写流程 ##
+
+- [HBase － 数据写入流程解析](http://hbasefly.com/2016/03/23/hbase_writer/): HBase-1.x版本的写流程中, 某次补丁对"写HLog"的优化
+- [HBase最佳实践－写性能优化策略](http://hbasefly.com/2016/12/10/hbase-parctice-write/)
+- [hbase源码系列（十一）Put、Delete在服务端是如何处理？](https://www.cnblogs.com/cenyuhai/p/3733445.html)
+
 ![](https://i.imgur.com/dTfHM1P.png)  
 1）Client 先访问 zookeeper，获取 hbase:meta 表位于哪个 Region Server。  
 2）访问对应的 Region Server，获取 hbase:meta 表，根据读请求的 namespace:table/rowkey，查询出目标数据位于哪个 Region Server 中的哪个 Region 中。并将该 table 的 region 信息以及 meta 表的位置信息缓存在客户端的 meta cache，方便下次访问。  
@@ -24,8 +30,9 @@
 5）将数据写入对应的 MemStore，数据会在 MemStore 进行排序；  
 6）向客户端发送 ack；  
 7）等达到 MemStore 的刷写时机后，将数据刷写到 HFile。  
-8）HBase-1.3.1源码
- ```
+8）HBase-1.x源码 (以下两段源码来自`package org.apache.hadoop.hbase.regionserver.HRegion`)
+
+ ```java
   @SuppressWarnings("unchecked")
   private long doMiniBatchMutation(BatchOperationInProgress<?> batchOp) throws IOException {
     boolean isInReplay = batchOp.isInReplay();
@@ -40,6 +47,7 @@
 
     long currentNonceGroup = HConstants.NO_NONCE, currentNonce = HConstants.NO_NONCE;
     WALEdit walEdit = null;
+    // dolly: 多版本并发控制
     MultiVersionConcurrencyControl.WriteEntry writeEntry = null;
     long txid = 0;
     boolean doRollBackMemstore = false;
@@ -61,7 +69,7 @@
       // ------------------------------------
       // STEP 1. Try to acquire as many locks as we can, and ensure
       // we acquire at least one.
-	  // dolly: 获取JUC中的锁, 保证读写分离; 下面这一大堆是需要考虑到的异常情况
+	  // dolly: 获取行锁和Region更新共享锁, 且保证读写分离; 下面这一大堆是需要考虑到的异常情况
       // ----------------------------------
       int numReadyToWrite = 0;
       long now = EnvironmentEdgeManager.currentTime();
@@ -106,6 +114,7 @@
         // get the next one.
         RowLock rowLock = null;
         try {
+          // dolly: 可以看到HBase只支持单行事务
           rowLock = getRowLockInternal(mutation.getRow(), true);
         } catch (IOException ioe) {
           LOG.warn("Failed getting lock in batch put, row="
@@ -147,6 +156,7 @@
 
       // we should record the timestamp only after we have acquired the rowLock,
       // otherwise, newer puts/deletes are not guaranteed to have a newer timestamp
+      // dolly: 该时间戳为服务端的时间
       now = EnvironmentEdgeManager.currentTime();
       byte[] byteNow = Bytes.toBytes(now);
 
@@ -157,6 +167,7 @@
 
       // ------------------------------------
       // STEP 2. Update any LATEST_TIMESTAMP timestamps
+      // dolly: 在Put类中, 若不指定时间戳, 会置为Long.MAX_VALUE, 在第二步中更新
       // ----------------------------------
       for (int i = firstIndex; !isInReplay && i < lastIndexExclusive; i++) {
         // skip invalid
@@ -164,6 +175,7 @@
             != OperationStatusCode.NOT_RUN) continue;
 
         Mutation mutation = batchOp.getMutation(i);
+        // dolly: Put和Delete两种操作会对时间戳有不同的处理方式, 其余相同
         if (mutation instanceof Put) {
           updateCellTimestamps(familyMaps[i].values(), byteNow);
           noOfPuts++;
@@ -181,6 +193,7 @@
         }
       }
       walEdit = new WALEdit(cellCount, isInReplay);
+      // 读操作上锁
       lock(this.updatesLock.readLock(), numReadyToWrite);
       locked = true;
 
@@ -280,7 +293,7 @@
 
       // -------------------------
       // STEP 4. Append the final edit to WAL. Do not sync wal.
-	  // dolly: 在内存中, 把WAL的修改对象追加到WAL之后, 但不写到HDFS
+	  // dolly: 在内存中, 把WAL的修改对象(异步)追加到WAL之后, 但不写到HDFS
       // -------------------------
       Mutation mutation = batchOp.getMutation(firstIndex);
       if (isInReplay) {
@@ -381,7 +394,7 @@
       // ------------------------------------
       // STEP 9. Run coprocessor post hooks. This should be done after the wal is
       // synced so that the coprocessor contract is adhered to.
-	  // dolly: 执行协处理器相关操作
+	  // dolly: 执行协处理器相关操作, 必须在WAL已经同步后才会执行
       // ------------------------------------
       if (!isInReplay && coprocessorHost != null) {
         for (int i = firstIndex; i < lastIndexExclusive; i++) {
@@ -461,7 +474,8 @@
   }
  ```
 9）HBase-2.X源码
- ```
+
+ ```java
   /**
    * Called to do a piece of the batch that came in to {@link #batchMutatpe(Mutation[], long, long)}
    * In here we also handle replay of edits on region recover. Also gets change in size brought
@@ -501,7 +515,7 @@
       List<Pair<NonceKey, WALEdit>> walEdits = batchOp.buildWALEdits(miniBatchOp);
 
       // STEP 4. Append the WALEdits to WAL and sync.
-	  // dolly: 和1.X不同, 在内存中构建完WAL后会直接写到HDFS上
+	  // dolly: 和1.x不同, 在内存中构建完WAL后会直接写到HDFS上
       for(Iterator<Pair<NonceKey, WALEdit>> it = walEdits.iterator(); it.hasNext();) {
         Pair<NonceKey, WALEdit> nonceKeyWALEditPair = it.next();
         walEdit = nonceKeyWALEditPair.getSecond();
@@ -553,28 +567,13 @@
   }
  ```
 
-## MemStore Flush ##
-1. 大小达到刷写阀值:  
-(1) 当某个 memstore 的大小达到了  
-hbase.hregion.memstore.flush.size （默认值 128M）  
-时，其所在 region 的所有 memstore 都会刷写。  
-(2) 当 memstore 的大小达到了  
-hbase.hregion.memstore.flush.size （默认值 128M）× hbase.hregion.memstore.block.multiplier （默认值 4）  
-时，会阻止继续往该 memstore 写数据。
-2. 整个RegionServer的memstore总和达到阀值:  
-(1) 当 region server 中 memstore 的总大小达到  
-java_heapsize × hbase.regionserver.global.memstore.size （默认值 0.4）× hbase.regionserver.global.memstore.size.lower.limit （默认值 0.95）  
-时，region 会按照其所有 memstore 的大小顺序（由大到小）依次进行刷写。直到 region server
-中所有 memstore 的总大小减小到上述值以下。  
-(2) 当 region server 中 memstore 的总大小达到  
-java_heapsize × hbase.regionserver.global.memstore.size （默认值 0.4）  
-时，会阻止继续往所有的 memstore 写数据。
-3. 到达自动刷写的时间，也会触发 memstore flush。自动刷新的时间间隔由该属性进行配置  
-hbase.regionserver.optionalcacheflushinterval （默认 1 小时）。
-4. 当 WAL 文件的数量超过 hbase.regionserver.max.logs，region 会按照时间顺序依次进行刷写，直到 WAL 文件数量减小到 hbase.regionserver.max.log 以下（该属性名已经废弃，现无需手动设置，最大值为 32）。
-5. 手动触发flush
-
 ## 读流程 ##
+
+- [HBase原理－数据读取流程解析](http://hbasefly.com/2016/12/21/hbase-getorscan/)
+- [HBase原理－迟到的‘数据读取流程’部分细节](http://hbasefly.com/2017/06/11/hbase-scan-2/)
+- [HBase最佳实践 – Scan用法大观园](http://hbasefly.com/2017/10/29/hbase-scan-3/)
+- [HBase最佳实践－读性能优化策略](http://hbasefly.com/2016/11/11/hbase%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5%ef%bc%8d%e8%af%bb%e6%80%a7%e8%83%bd%e4%bc%98%e5%8c%96%e7%ad%96%e7%95%a5/)
+
 ![](https://i.imgur.com/rlOHKlj.png)  
 1）Client 先访问 zookeeper，获取 hbase:meta 表位于哪个 Region Server。  
 2）访问对应的 Region Server，获取 hbase:meta 表，根据读请求的 namespace:table/rowkey，查询出目标数据位于哪个 Region Server 中的哪个 Region 中。并将该 table 的 region 信息以及 meta 表的位置信息缓存在客户端的 meta cache，方便下次访问。  
@@ -582,10 +581,80 @@ hbase.regionserver.optionalcacheflushinterval （默认 1 小时）。
 4）分别在 Block Cache（读缓存），MemStore 和 Store File（HFile）中查询目标数据（**同时找**，只返回符合条件的时间戳对应的数据），并将查到的所有数据进行合并。此处所有数据是指同一条数据的不同版本（time stamp）或者不同的类型（Put/Delete）。  
 5）将**从文件中查询到的数据块**（Block，HFile 数据存储单元，默认大小为 64KB）缓存到 Block Cache。  
 6）将合并后的最终结果返回给客户端。
-7）图解  
-![](https://i.imgur.com/MWu3rbJ.png)
+
+## 读写的一致性问题
+
+1. 图解读写流程  
+   ![](https://i.imgur.com/MWu3rbJ.png)
+2. MultiVersionConcurrencyControl
+
+- 参考: [HBase MVCC实现流程](https://www.jianshu.com/p/86246d8bee24)
+- HBase-1.x源码
+
+```java
+/**
+ * Manages the read/write consistency. This provides an interface for readers to determine what
+ * entries to ignore, and a mechanism for writers to obtain new write numbers, then "commit"
+ * the new writes for readers to read (thus forming atomic transactions).
+ */
+package org.apache.hadoop.hbase.regionserver.MultiVersionConcurrencyControl;
+
+  /**
+   * Start a write transaction. Create a new {@link WriteEntry} with a new write number and add it
+   * to our queue of ongoing writes. Return this WriteEntry instance. To complete the write
+   * transaction and wait for it to be visible, call {@link #completeAndWait(WriteEntry)}. If the
+   * write failed, call {@link #complete(WriteEntry)} so we can clean up AFTER removing ALL trace of
+   * the failed write transaction.
+   * <p>
+   * The {@code action} will be executed under the lock which means it can keep the same order with
+   * mvcc.
+   * @see #complete(WriteEntry)
+   * @see #completeAndWait(WriteEntry)
+   */
+  public WriteEntry begin(Runnable action) {
+    synchronized (writeQueue) {
+      long nextWriteNumber = writePoint.incrementAndGet();
+      WriteEntry e = new WriteEntry(nextWriteNumber);
+      writeQueue.add(e);
+      action.run();
+      return e;
+    }
+  }
+```
+
+## MemStore Flush
+
+- [HBase – Memstore Flush深度解析](http://hbasefly.com/2016/03/23/hbase-memstore-flush/)
+- [HBase内存管理之MemStore进化论](http://hbasefly.com/2019/10/18/hbase-memstore-evolution/)
+- [hbase源码系列（十三）缓存机制MemStore与Block Cache](https://www.cnblogs.com/cenyuhai/p/3744789.html)
+
+1. 大小达到刷写阀值:  
+   (1) 当某个 memstore 的大小达到了  
+   hbase.hregion.memstore.flush.size （默认值 128M）  
+   时，其所在 region 的所有 memstore 都会刷写。  
+   (2) 当 memstore 的大小达到了  
+   hbase.hregion.memstore.flush.size （默认值 128M）× hbase.hregion.memstore.block.multiplier （默认值 4）  
+   时，会阻止继续往该 memstore 写数据。
+2. 整个RegionServer的memstore总和达到阀值:  
+   (1) 当 region server 中 memstore 的总大小达到  
+   java_heapsize × hbase.regionserver.global.memstore.size （默认值 0.4）× hbase.regionserver.global.memstore.size.lower.limit （默认值 0.95）  
+   时，region 会按照其所有 memstore 的大小顺序（由大到小）依次进行刷写。直到 region server
+   中所有 memstore 的总大小减小到上述值以下。  
+   (2) 当 region server 中 memstore 的总大小达到  
+   java_heapsize × hbase.regionserver.global.memstore.size （默认值 0.4）  
+   时，会阻止继续往所有的 memstore 写数据。
+3. 到达自动刷写的时间，也会触发 memstore flush。自动刷新的时间间隔由该属性进行配置  
+   hbase.regionserver.optionalcacheflushinterval （默认 1 小时）。
+4. 当 WAL 文件的数量超过 hbase.regionserver.max.logs，region 会按照时间顺序依次进行刷写，直到 WAL 文件数量减小到 hbase.regionserver.max.log 以下（该属性名已经废弃，现无需手动设置，最大值为 32）。
+5. 手动触发flush
 
 ## StoreFile Compaction ##
+
+0. 参考资料
+
+- [HBase Compaction的前生今世－身世之旅](http://hbasefly.com/2016/07/13/hbase-compaction-1/)
+- [HBase Compaction的前生今世－改造之路](http://hbasefly.com/2016/07/25/hbase-compaction-2/)
+
 1. 由于memstore每次刷写都会生成一个新的HFile，且同一个字段的不同版本（timestamp）和不同类型（Put/Delete）有可能会分布在不同的HFile中，因此查询时需要遍历所有的HFile。为了减少 HFile 的个数，以及清理掉过期和删除的数据，会进行 StoreFile Compaction。  
 2. 作用:  
 a. 合并文件  
@@ -619,14 +688,19 @@ c. 字符串拼接、加盐
 d. 时间戳反转
 3. 热点问题  
 3.1 产生热点问题的原因：  
-(1)	hbase的中的数据是按照字典序排序的，当大量连续的rowkey集中写在个别的region，各个region之间数据分布不均衡  
-(2)	创建表时没有提前预分区，创建的表默认只有一个region，大量的数据写入当前region  
-(3)	创建表已经提前预分区，但是设计的rowkey没有规律可循  
+	(1)	hbase的中的数据是按照字典序排序的，当大量连续的rowkey集中写在个别的region，各个region之间数据分布不均衡  
+	(2)	创建表时没有提前预分区，创建的表默认只有一个region，大量的数据写入当前region  
+	(3)	创建表已经提前预分区，但是设计的rowkey没有规律可循  
 3.2 热点问题的解决方案：  
-(1)	随机数+业务主键，如果想让最近的数据快速get到，可以将时间戳加上  
-(2)	rowkey设计越短越好，不要超过10~100个字节  
-(3)	映射regionNo，这样既可以让数据均匀分布到各个region中，同时可以根据startkey和endkey可以get到同一批数据  
+	(1)	随机数+业务主键，如果想让最近的数据快速get到，可以将时间戳加上  
+	(2)	rowkey设计越短越好，不要超过10~100个字节  
+	(3)	映射regionNo，这样既可以让数据均匀分布到各个region中，同时可以根据startkey和endkey可以get到同一批数据  
 
-## 内存经验调优 ##
+## CMS GC ##
+
+- [HBase GC的前生今世 – 身世篇](http://hbasefly.com/2016/05/21/hbase-gc-1/)
+- [HBase GC的前生今世 – 演进篇](http://hbasefly.com/2016/05/29/hbase-gc-2/)
+- [HBase最佳实践－CMS GC调优](http://hbasefly.com/2016/05/29/hbase-gc-2/)
+
 - HBase 操作过程中需要大量的内存开销，毕竟 Table 是可以缓存在内存中的，一般会分配整个可用内存的 70%给 HBase 的 Java 堆。但是不建议分配非常大的堆内存，因为 FGC 过程持续太久会导致 RegionServer 处于长期不可用状态，一般 16~48G 内存就可以了，如果因为框架占用内存过高导致系统内存不足，框架一样会被系统服务拖死。
 - RegionServer内存大于32GB，建议使用G1GC策略; 一般情况ParallelGC + CMS即可

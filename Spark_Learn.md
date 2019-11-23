@@ -1,5 +1,11 @@
 # Spark原理和源码 #
-2019/11/17 18:18:24 
+2019/11/17
+
+## 参考资料
+
+- [岑玉海 - Spark源码系列](https://www.cnblogs.com/cenyuhai/tag/Spark源码系列/)
+- [岑玉海 - Spark](https://www.cnblogs.com/cenyuhai/tag/Spark/) 
+- [有态度的HBase/Spark/BigData - Spark](http://hbasefly.com/category/spark/)
 
 ## Spark Core ##
 1. 小故事  

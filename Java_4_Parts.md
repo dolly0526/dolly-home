@@ -86,8 +86,8 @@ jdk7和jdk8中通过Vector()构造器创建对象时, 底层都创建了长度�
 1. `LinkedList list = new LinkedList();`  
  - 内部声明了Node类型的first和last属性, 默认值为null
  ```java
-transient Node<E> first;
-transient Node<E> last;
+    transient Node<E> first;
+    transient Node<E> last;
  ```
  - 其中, Node定义如下, 体现了LinkedList的双向链表的说法
  ```java
@@ -270,7 +270,7 @@ final Node<K,V>[] resize() {
     ...
 }
  ```
- - jdk7底层结构只有：数组 + 链表；jdk8中底层结构：数组 + 链表 + 红黑树。  
+ - jdk7底层结构只有：**数组 + 链表**；jdk8中底层结构：**数组 + 链表 + 红黑树**。  
  - 形成链表时，**七上八下**（jdk7:新的元素指向旧的元素, jdk8：旧的元素指向新的元素）
  ```java
 if ((e = p.next) == null) {
@@ -396,6 +396,7 @@ private static final Object PRESENT = new Object();
 协程: 
 
 **注意:**  
+
 1. 线程的启动不是在start()方法后立刻执行, 由底层CPU调度
 2. 一个Thread类只能start一次, 否则会报**IllegalThreadStateException**
 3. 并发编程套路:  
@@ -409,122 +410,127 @@ private static final Object PRESENT = new Object();
 
 ## CopyOnWriteArrayList ##
 1. ArrayList是线程不安全的
- ```
-	/**
-	 * 1.问题场景
-	 *   30个线程并发读写同一个ArrayList
-	 * 2.故障现象
-	 *   java.util.ConcurrentModificationException
-	 * 3.解决方法
-	 *   1) new Vector<>() --> 过时
-	 *   2) Collections.synchronizedList(new ArrayList<>()) --> 低效
-	 * 4.优化建议(同样的错误不犯第2次)
-	 *   读写分离, new CopyOnWriteArrayList<>()
-	 */
-    public static void main(String[] args) {
-        List<String> list = new CopyOnWriteArrayList<>();
-        for (int i = 0; i < 30; i++) {
-            new Thread(() -> {
-                list.add(UUID.randomUUID().toString().substring(0, 8));
-                System.out.println(list);
-            }, String.valueOf(i)).start();
-        } //java.util.ConcurrentModificationException
-    }
+ ```java
+/**
+ * 1.问题场景
+ *   30个线程并发读写同一个ArrayList
+ * 2.故障现象
+ *   java.util.ConcurrentModificationException
+ * 3.解决方法
+ *   1) new Vector<>() --> 过时
+ *   2) Collections.synchronizedList(new ArrayList<>()) --> 低效
+ * 4.优化建议(同样的错误不犯第2次)
+ *   读写分离, new CopyOnWriteArrayList<>()
+ */
+public static void main(String[] args) {
+    List<String> list = new CopyOnWriteArrayList<>();
+    for (int i = 0; i < 30; i++) {
+        new Thread(() -> {
+            list.add(UUID.randomUUID().toString().substring(0, 8));
+            System.out.println(list);
+        }, String.valueOf(i)).start();
+    } //java.util.ConcurrentModificationException
+}
  ```
 2. CopyOnWriteArrayList底层实现类也是Object[]数组; jdk8中调用空参构造器时, 会初始化一个空数组
- ```
-	/** The array, accessed only via getArray/setArray. */
-	private transient volatile Object[] array;
+ ```java
+/** The array, accessed only via getArray/setArray. */
+private transient volatile Object[] array;
 
-	/** Creates an empty list. */
-	public CopyOnWriteArrayList() {
-    	setArray(new Object[0]);
-	}
+/** Creates an empty list. */
+public CopyOnWriteArrayList() {
+    setArray(new Object[0]);
+}
  ```
 3. **写时复制**对add方法加锁, 做到读写分离, 同时保证并发性和数据一致性
- ```
-	/**
-	 * Appends the specified element to the end of this list.
-	 *
-	 * @param e element to be appended to this list
-	 * @return {@code true} (as specified by {@link Collection#add})
-	 */
-	public boolean add(E e) {
-	    final ReentrantLock lock = this.lock;
-	    lock.lock();
-	    try {
-	        Object[] elements = getArray();
-	        int len = elements.length;
-	        Object[] newElements = Arrays.copyOf(elements, len + 1);
-	        newElements[len] = e;
-	        setArray(newElements);
-	        return true;
-		} finally {
-	        lock.unlock();
-	    }
-	}
+ ```java
+/**
+ * Appends the specified element to the end of this list.
+ *
+ * @param e element to be appended to this list
+ * @return {@code true} (as specified by {@link Collection#add})
+ */
+public boolean add(E e) {
+    final ReentrantLock lock = this.lock;
+    lock.lock();
+    try {
+        Object[] elements = getArray();
+        int len = elements.length;
+        Object[] newElements = Arrays.copyOf(elements, len + 1);
+        newElements[len] = e;
+        setArray(newElements);
+        return true;
+    } finally {
+        lock.unlock();
+    }
+}
  ```
 
 ## CopyOnWriteArraySet ##
 1. HashSet也是线程不安全的, 报错和ArrayList相同, 解决办法类似
 2. CopyOnWriteArraySet底层是CopyOnWriteArrayList
- ```
-	private final CopyOnWriteArrayList<E> al;
+ ```java
+private final CopyOnWriteArrayList<E> al;
 
-	/** Creates an empty set. */
-	public CopyOnWriteArraySet() {
-	    al = new CopyOnWriteArrayList<E>();
-	}
+/** Creates an empty set. */
+public CopyOnWriteArraySet() {
+    al = new CopyOnWriteArrayList<E>();
+}
  ```
 3. 添加时调用**addIfAbsent**方法, 先判断是否存在, 不存在则添加
- ```
-	/**
-	 * Appends the element, if not present.
-	 *
-	 * @param e element to be added to this list, if absent
-	 * @return {@code true} if the element was added
-	 */
-	public boolean addIfAbsent(E e) {
-	    Object[] snapshot = getArray();
-	    return indexOf(e, snapshot, 0, snapshot.length) >= 0 ? false :
- 	       addIfAbsent(e, snapshot);
-	}
+ ```java
+/**
+ * Appends the element, if not present.
+ *
+ * @param e element to be added to this list, if absent
+ * @return {@code true} if the element was added
+ */
+public boolean addIfAbsent(E e) {
+    Object[] snapshot = getArray();
+    return indexOf(e, snapshot, 0, snapshot.length) >= 0 ? false :
+       addIfAbsent(e, snapshot);
+}
 
-	/**
-	 * A version of addIfAbsent using the strong hint that given
-	 * recent snapshot does not contain e.
-	 */
-	private boolean addIfAbsent(E e, Object[] snapshot) {
-    	final ReentrantLock lock = this.lock;
-    	lock.lock();
-    	try {
-        	Object[] current = getArray();
-        	int len = current.length;
-        	if (snapshot != current) {
-            	// Optimize for lost race to another addXXX operation
-            	int common = Math.min(snapshot.length, len);
-            	for (int i = 0; i < common; i++)
-                	if (current[i] != snapshot[i] && eq(e, current[i]))
-                    	return false;
-            	if (indexOf(e, current, common, len) >= 0)
-                    	return false;
-        	}
-        	Object[] newElements = Arrays.copyOf(current, len + 1);
-        	newElements[len] = e;
-        	setArray(newElements);
-			return true;
-		} finally {
-        	lock.unlock();
-    	}
-	}
+/**
+ * A version of addIfAbsent using the strong hint that given
+ * recent snapshot does not contain e.
+ */
+private boolean addIfAbsent(E e, Object[] snapshot) {
+    final ReentrantLock lock = this.lock;
+    lock.lock();
+    try {
+        Object[] current = getArray();
+        int len = current.length;
+        if (snapshot != current) {
+            // Optimize for lost race to another addXXX operation
+            int common = Math.min(snapshot.length, len);
+            for (int i = 0; i < common; i++)
+                if (current[i] != snapshot[i] && eq(e, current[i]))
+                    return false;
+            if (indexOf(e, current, common, len) >= 0)
+                    return false;
+        }
+        Object[] newElements = Arrays.copyOf(current, len + 1);
+        newElements[len] = e;
+        setArray(newElements);
+        return true;
+    } finally {
+        lock.unlock();
+    }
+}
  ```
 
 ## ConcurrentHashMap ##
+
+0. 参考资料
+
+- [深入理解HashMap和CurrentHashMap](https://www.cnblogs.com/fsychen/p/9361858.html)
+
 1. 并发版HashMap, 报错相同, 解决办法类似
 2. 待补充...
 
 ## 三个线程循环打印 ##
-```
+```java
 public class Condition06 {
     public static void main(String[] args) {
 
@@ -607,7 +613,7 @@ class ShareData {
 2. 不同的类加载器
 ![](https://i.imgur.com/eB7Noi3.png)
 3. **sun.misc.Launcher**是一个java虚拟机的入口应用
- ```
+ ```java
 public class MyObject {
     public static void main(String[] args) {
         System.out.println(new Object().getClass().getClassLoader()); //null
@@ -624,7 +630,7 @@ public class MyObject {
 
 ## native ##
 1. Thread类只能start一次
- ```
+ ```java
 public class MyThread {
     public static void main(String[] args) {
 
@@ -827,7 +833,7 @@ volatile: 是JVM提供的**轻量级**的同步机制
 
 ## 多线程单例模式 ##
 1. DCL (Double Check Lock, 双端检锁机制)
-```
+```java
 public class SingletonDemo {
     private static volatile SingletonDemo instance = null;
 
@@ -851,7 +857,7 @@ public class SingletonDemo {
 ![](https://i.imgur.com/rEITlXy.png)
 
 2. 通过静态内部类, 构造延时加载的单例模式
- ```
+ ```java
 class StaticSingleton {
     private StaticSingleton() {
         System.out.println("StaticSingleton is created");
@@ -873,7 +879,7 @@ class StaticSingleton {
 
 ### Unsafe类 ###
 1. AtomicInteger底层实现
- ```
+ ```java
 public class AtomicInteger extends Number implements java.io.Serializable {
     private static final long serialVersionUID = 6214790243416807050L;
 
@@ -895,7 +901,7 @@ public class AtomicInteger extends Number implements java.io.Serializable {
 2. rt.jar\sun\misc\Unsafe.class  
 ![](https://i.imgur.com/CxpBUzT.png)
 3. getAndIncrement()方法底层实现
- ```
+ ```java
     /**
      * Atomically increments by one the current value.
      *
@@ -916,6 +922,7 @@ public class AtomicInteger extends Number implements java.io.Serializable {
  ```
 ![](https://i.imgur.com/fI25TK8.png)  
 ![](https://i.imgur.com/uqo2NDj.png)
+
 4. 小总结
 ![](https://i.imgur.com/nMQRi9d.png)
 5. CAS缺点  
@@ -929,7 +936,7 @@ public class AtomicInteger extends Number implements java.io.Serializable {
 1. "狸猫换太子"  
 ![](https://i.imgur.com/BYPCM2v.png)
 2. 解决ABA问题
- ```
+ ```java
 public class AbaDemo {
 
     static AtomicReference<Integer> atomicReference = new AtomicReference<>(100);
@@ -1007,7 +1014,7 @@ public class AbaDemo {
 1. 是什么  
 ![](https://i.imgur.com/5AjGXq8.png)
 2. 代码验证
- ```
+ ```java
 public class SpinLockDemo {
     AtomicReference<Thread> atomicReference = new AtomicReference<>();
 
@@ -1060,7 +1067,7 @@ public class SpinLockDemo {
 1. 独占锁(写锁)/共享锁(读锁)/互斥锁  
 ![](https://i.imgur.com/QER7nhC.png)
 2. 代码验证
- ```
+ ```java
 public class ReadWriteLockDemo {
     public static void main(String[] args) {
         MyCache myCache = new MyCache();
@@ -1129,7 +1136,7 @@ class MyCache {
 2. 代码演示
 
 
- ```
+ ```java
 public class CountDownLatchDemo {
     public static void main(String[] args) throws InterruptedException {
         CountDownLatch countDownLatch = new CountDownLatch(6);
@@ -1190,7 +1197,7 @@ CountDownLatch做加法, CyclicBarrier做减法, Semaphore可以加也可以减
 ![](https://i.imgur.com/Z6Ojj8n.png)  
 ![](https://i.imgur.com/TZOJaaK.png)
 5. SynchronousQueue, 队列中只有一个元素, 消费一个生产一个
- ```
+ ```java
 public class SynchronousQueueDemo {
     public static void main(String[] args) {
         BlockingQueue<String> blockingQueue = new SynchronousQueue<>();
@@ -1240,7 +1247,7 @@ public class SynchronousQueueDemo {
 0. 参考资料
  - [Java生产者消费者的三种实现](https://blog.csdn.net/xindoo/article/details/80004003)
 1. 代码实现
-```
+```java
 public class ProdConsumerDemo {
     public static void main(String[] args) {
         MyResource myResource = new MyResource(new ArrayBlockingQueue<>(10));
@@ -1319,7 +1326,7 @@ class MyResource {
 ![](https://i.imgur.com/0jWTTkP.png)
 
 ## Callable接口 ##
-```
+```java
 public class Callable07 {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
 
@@ -1360,33 +1367,33 @@ class MyThread implements Callable<Integer> {
 
 ### 线程池底层实现 ###
 1. ThreadPoolExecutor的7个参数
- ```
+ ```java
 /**
      * Creates a new {@code ThreadPoolExecutor} with the given initial
      * parameters.
      *
      * @param corePoolSize the number of threads to keep in the pool, even if they are idle, unless {@code allowCoreThreadTimeOut} is set
-     * 定义: 线程池中的常驻核心线程数
+     * dolly: 线程池中的常驻核心线程数
 	 * 1) 在创建了线程池后, 当有请求任务来之后, 就会安排池中的线程去执行请求任务, 近似理解为"今日当值线程"
 	 * 2) 当线程池中的线程数目达到corePoolSize后, 就会把到达的任务放到缓存队列当中
      * 
      * @param maximumPoolSize the maximum number of threads to allow in the pool
-     * 定义: 线程池能够容纳同时执行的最大线程数, 其值必须大于等于1
+     * dolly: 线程池能够容纳同时执行的最大线程数, 其值必须大于等于1
      * 
      * @param keepAliveTime when the number of threads is greater than the core, this is the maximum time that excess idle threads will wait for new tasks before terminating.
-     * 定义: 多余的空闲线程的存活时间
+     * dolly: 多余的空闲线程的存活时间
      * 
      * @param unit the time unit for the {@code keepAliveTime} argument
-     * 定义: keepAliveTime的单位
+     * dolly: keepAliveTime的单位
      * 
      * @param workQueue the queue to use for holding tasks before they are executed.  This queue will hold only the {@code Runnable} tasks submitted by the {@code execute} method.
-     * 定义: 任务队列, 被提交但尚未被执行的任务
+     * dolly: 任务队列, 被提交但尚未被执行的任务
      * 
      * @param threadFactory the factory to use when the executor creates a new thread
      * 定义: 生成线程池中的工作线程的线程工厂, 用于创建线程, 一般用默认即可
      * 
      * @param handler the handler to use when execution is blocked because the thread bounds and queue capacities are reached
-     * 定义: 拒绝策略, 表示当队列满了并且工作线程大于等于线程池的最大线程数(maximumPoolSize)
+     * dolly: 拒绝策略, 表示当队列满了并且工作线程大于等于线程池的最大线程数(maximumPoolSize)
      * 
      * @throws IllegalArgumentException if one of the following holds:<br>
      *         {@code corePoolSize < 0}<br>
@@ -1431,7 +1438,7 @@ d. DiscardPolicy: 直接丢弃任务, 不予任何处理也不抛出异常; 如�
 允许的创建线程数量为 Integer.MAX_VALUE，可能会创建大量的线程，从而导致 OOM。  
 -- 阿里巴巴Java开发手册
 2. 手写线程池
- ```
+ ```java
 public class ThreadPoolDemo {
     public static void main(String[] args) {
         ExecutorService threadPool = new ThreadPoolExecutor(2, 5, 1L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(3), Executors.defaultThreadFactory(), new ThreadPoolExecutor.DiscardOldestPolicy());
@@ -1460,7 +1467,7 @@ b. 第二种
 1. 是什么  
 ![](https://i.imgur.com/J3KY7iM.png)
 2. 代码演示
- ```
+ ```java
 public class DeadLockDemo {
     public static void main(String[] args) {
         String lockA = "lockA";
@@ -1495,7 +1502,7 @@ class HoldLockThread implements Runnable {
 }
  ```
 3. 解决: 
- ```
+ ```shell
 1) 在idea的终端, jps -l, 查看进程号
 2) jstack (进程号), 生成问题报告 
  ```
@@ -1526,13 +1533,13 @@ c. -Xmixed: 混合模式
 a. Boolean类型: -XX:+或者-某个属性值 ("+"表示开启, "-"表示关闭)  
 b. KV设值类型: -XX:属性key=属性value  
 c. jinfo举例, 如何查看当前运行程序的配置
- ```
+ ```shell
 jps -l   ->    java进程编号
 jinfo -flag 具体参数 java进程编号   ->   查看某个参数
 jinfo -flags java进程编号   ->   查看全部参数
  ```
 d. 坑题: 如何解释-Xms和-Xmx?  
- ```
+ ```shell
 这两个参数仍为**XX参数**:  
 -Xms == -XX:InitialHeapSize  
 -Xmx == -XX:MaxHeapSize
@@ -1577,7 +1584,7 @@ d. 坑题: 如何解释-Xms和-Xmx?
 ## OOM ##
 1. java.lang.StackOverflowError  
  - 代码案例
- ```
+ ```java
 public class StackOverflowErrorDemo {
     public static void main(String[] args) {
         stackOverflowError();
@@ -1591,7 +1598,7 @@ public class StackOverflowErrorDemo {
  - 爆栈是**错误**, 不是异常  
 ![](https://i.imgur.com/imCFUr2.png)
 2. java.lang.OutOfMemoryError: Java heap space
- ```
+ ```java
 public class JavaHeapSpaceDemo {
     public static void main(String[] args) {
         String s = "dolly";
@@ -1604,7 +1611,7 @@ public class JavaHeapSpaceDemo {
  ```
 3. java.lang.OutOfMemoryError: GC overhead limit exceeded  
 ![](https://i.imgur.com/AMcyOd6.png)  
- ```
+ ```java
 public class GcOverheadDemo {
     //-Xms10m -Xmx10m -XX:+PrintGCDetails -XX:MaxDirectMemorySize=5m
     public static void main(String[] args) {
@@ -1623,7 +1630,7 @@ public class GcOverheadDemo {
 4. java.lang.OutOfMemoryError: Direct buffer memory  
 ![](https://i.imgur.com/YIEuQON.png)  
 ![](https://i.imgur.com/4iyIAeg.png)
- ```
+ ```java
 public class DirectBufferMemoryDemo {
     public static void main(String[] args) {
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(6 * 1024 * 1024);
@@ -1647,7 +1654,7 @@ public class DirectBufferMemoryDemo {
 ![](https://i.imgur.com/RoTnfZX.png)
  - G1垃圾收集器: 将堆内存分割成不同的区域, 然后并发地对其进行垃圾回收
 4. 如何查看默认的垃圾收集器?
- ```
+ ```shell
 java -XX:+PrintCommandLineFlags -version
 jdk8默认: -XX:+UseParallelGC
  ```
