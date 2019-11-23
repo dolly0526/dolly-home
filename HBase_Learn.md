@@ -931,6 +931,121 @@ c. 提高读写数据的效率
 a. 当数据块达到3块，HMaster触发合并操作，Region将数据块加载到本地，进行合并
 b. CompactionChecker线程，周期轮询
 c. 手动触发compact
+5. HBase-1.x源码
+
+```java
+package org.apache.hadoop.hbase.regionserver.CompactSplitThread;
+
+  /**
+   * @param r region store belongs to
+   * @param s Store to request compaction on
+   * @param why Why compaction requested -- used in debug messages
+   * @param priority override the default priority (NO_PRIORITY == decide)
+   * @param request custom compaction request. Can be <tt>null</tt> in which case a simple
+   *          compaction will be used.
+   */
+  private synchronized CompactionRequest requestCompactionInternal(final Region r, final Store s,
+      final String why, int priority, CompactionRequest request, boolean selectNow, User user)
+          throws IOException {
+    if (this.server.isStopped()
+        || (r.getTableDesc() != null && !r.getTableDesc().isCompactionEnabled())) {
+      return null;
+    }
+
+    CompactionContext compaction = null;
+    if (selectNow) {
+      compaction = selectCompaction(r, s, priority, request, user);
+      if (compaction == null) return null; // message logged inside
+    }
+
+    // We assume that most compactions are small. So, put system compactions into small
+    // pool; we will do selection there, and move to large pool if necessary.
+    // dolly: 自定义了一个线程池
+    ThreadPoolExecutor pool = (selectNow && s.throttleCompaction(compaction.getRequest().getSize()))
+      ? longCompactions : shortCompactions;
+    pool.execute(new CompactionRunner(s, r, compaction, pool, user));
+    if (LOG.isDebugEnabled()) {
+      String type = (pool == shortCompactions) ? "Small " : "Large ";
+      LOG.debug(type + "Compaction requested: " + (selectNow ? compaction.toString() : "system")
+          + (why != null && !why.isEmpty() ? "; Because: " + why : "") + "; " + this);
+    }
+    return selectNow ? compaction.getRequest() : null;
+  }
+
+package org.apache.hadoop.hbase.regionserver.compaction.SortedCompactionPolicy;
+
+  /**
+   * @param candidateFiles candidate files, ordered from oldest to newest by seqId. We rely on
+   *   DefaultStoreFileManager to sort the files by seqId to guarantee contiguous compaction based
+   *   on seqId for data consistency.
+   * @return subset copy of candidate list that meets compaction criteria
+   */
+  public CompactionRequest selectCompaction(Collection<StoreFile> candidateFiles,
+      final List<StoreFile> filesCompacting, final boolean isUserCompaction,
+      final boolean mayUseOffPeak, final boolean forceMajor) throws IOException {
+    // Preliminary compaction subject to filters
+    ArrayList<StoreFile> candidateSelection = new ArrayList<StoreFile>(candidateFiles);
+    // Stuck and not compacting enough (estimate). It is not guaranteed that we will be
+    // able to compact more if stuck and compacting, because ratio policy excludes some
+    // non-compacting files from consideration during compaction (see getCurrentEligibleFiles).
+    int futureFiles = filesCompacting.isEmpty() ? 0 : 1;
+    boolean mayBeStuck = (candidateFiles.size() - filesCompacting.size() + futureFiles)
+        >= storeConfigInfo.getBlockingFileCount();
+
+    candidateSelection = getCurrentEligibleFiles(candidateSelection, filesCompacting);
+    LOG.debug("Selecting compaction from " + candidateFiles.size() + " store files, " +
+        filesCompacting.size() + " compacting, " + candidateSelection.size() +
+        " eligible, " + storeConfigInfo.getBlockingFileCount() + " blocking");
+
+    // If we can't have all files, we cannot do major anyway
+    boolean isAllFiles = candidateFiles.size() == candidateSelection.size();
+    if (!(forceMajor && isAllFiles)) {
+      //dolly: minor compact跳过大文件
+      candidateSelection = skipLargeFiles(candidateSelection, mayUseOffPeak);
+      isAllFiles = candidateFiles.size() == candidateSelection.size();
+    }
+
+    // Try a major compaction if this is a user-requested major compaction,
+    // or if we do not have too many files to compact and this was requested as a major compaction
+    boolean isTryingMajor = (forceMajor && isAllFiles && isUserCompaction)
+        || (((forceMajor && isAllFiles) || shouldPerformMajorCompaction(candidateSelection))
+          && (candidateSelection.size() < comConf.getMaxFilesToCompact()));
+    // Or, if there are any references among the candidates.
+    boolean isAfterSplit = StoreUtils.hasReferences(candidateSelection);
+
+    CompactionRequest result = createCompactionRequest(candidateSelection,
+      isTryingMajor || isAfterSplit, mayUseOffPeak, mayBeStuck);
+
+    ArrayList<StoreFile> filesToCompact = Lists.newArrayList(result.getFiles());
+    removeExcessFiles(filesToCompact, isUserCompaction, isTryingMajor);
+    result.updateFiles(filesToCompact);
+
+    isAllFiles = (candidateFiles.size() == filesToCompact.size());
+    result.setOffPeak(!filesToCompact.isEmpty() && !isAllFiles && mayUseOffPeak);
+    result.setIsMajor(isTryingMajor && isAllFiles, isAllFiles);
+
+    return result;
+  }
+
+package org.apache.hadoop.hbase.regionserver.compactions.RatioBasedCompactionPolicy;
+
+  @Override
+  protected CompactionRequest createCompactionRequest(ArrayList<StoreFile> candidateSelection,
+    boolean tryingMajor, boolean mayUseOffPeak, boolean mayBeStuck) throws IOException {
+    if (!tryingMajor) {
+      //dolly: 过滤掉Bulkload进来的文件
+      candidateSelection = filterBulk(candidateSelection);
+      //dolly: 过滤掉大小不满足的文件
+      candidateSelection = applyCompactionPolicy(candidateSelection, mayUseOffPeak, mayBeStuck);
+      //dolly: 检查文件数是否满足最小的要求
+      candidateSelection = checkMinFilesCriteria(candidateSelection,
+        comConf.getMinFilesToCompact());
+    }
+    return new CompactionRequest(candidateSelection);
+  }
+```
+
+
 
 ## Region Split ##
 
@@ -942,7 +1057,55 @@ c. 手动触发compact
    Region Split 时机：  
    (1) 当 1 个region中的某个Store下所有StoreFile的总大小超过hbase.hregion.max.filesize，该 Region 就会进行拆分（0.94 版本之前）。  
    (2) 当 1 个 region 中 的某 个 Store 下所有 StoreFile 的总大小超过 Min(R^2 × "hbase.hregion.memstore.flush.size", hbase.hregion.max.filesize")，该 Region 就会进行拆分，其中 R 为当前 Region Server 中属于该 Table 的个数（0.94 版本之后）。  
-   (3) 每次切分**不一定都一样大**：涉及到**middleKey**查询
+   (3) 每次切分**不一定都一样大**：涉及到**midKey**查询
+2. HBase-1.x源码
+
+```java
+package org.apache.hadoop.hbase.regionserver.CompactSplitThread;
+
+  public synchronized boolean requestSplit(final Region r) {
+    // don't split regions that are blocking
+    if (shouldSplitRegion() && ((HRegion)r).getCompactPriority() >= Store.PRIORITY_USER) {
+      // dolly: midkey为切分点
+      byte[] midKey = ((HRegion)r).checkSplit();
+      if (midKey != null) {
+        requestSplit(r, midKey);
+        return true;
+      }
+    }
+    return false;
+  }
+
+package org.apache.hadoop.hbase.regionserver.RegionSplitPolicy;
+
+  /**
+   * @return the key at which the region should be split, or null
+   * if it cannot be split. This will only be called if shouldSplit
+   * previously returned true.
+   */
+  protected byte[] getSplitPoint() {
+    byte[] explicitSplitPoint = this.region.getExplicitSplitPoint();
+    if (explicitSplitPoint != null) {
+      return explicitSplitPoint;
+    }
+    List<Store> stores = region.getStores();
+
+    byte[] splitPointFromLargestStore = null;
+    long largestStoreSize = 0;
+    for (Store s : stores) {
+      byte[] splitPoint = s.getSplitPoint();
+      // Store also returns null if it has references as way of indicating it is not splittable
+      long storeSize = s.getSize();
+      // dolly: 找出最大的HStore，然后通过它来找这个分裂点，最大的文件的中间点
+      if (splitPoint != null && largestStoreSize < storeSize) {
+        splitPointFromLargestStore = splitPoint;
+        largestStoreSize = storeSize;
+      }
+    }
+
+    return splitPointFromLargestStore;
+  }
+```
 
 ## rowkey设计 ##
 1. 原则:  
