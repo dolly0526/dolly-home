@@ -30,9 +30,11 @@
 5）将数据写入对应的 MemStore，数据会在 MemStore 进行排序；  
 6）向客户端发送 ack；  
 7）等达到 MemStore 的刷写时机后，将数据刷写到 HFile。  
-8）HBase-1.x源码 (以下两段源码来自`package org.apache.hadoop.hbase.regionserver.HRegion`)
+8）HBase-1.x源码
 
  ```java
+package org.apache.hadoop.hbase.regionserver.HRegion;
+
   @SuppressWarnings("unchecked")
   private long doMiniBatchMutation(BatchOperationInProgress<?> batchOp) throws IOException {
     boolean isInReplay = batchOp.isInReplay();
@@ -476,6 +478,8 @@
 9）HBase-2.x源码
 
  ```java
+package org.apache.hadoop.hbase.regionserver.HRegion;  
+
   /**
    * Called to do a piece of the batch that came in to {@link #batchMutatpe(Mutation[], long, long)}
    * In here we also handle replay of edits on region recover. Also gets change in size brought
