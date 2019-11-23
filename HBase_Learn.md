@@ -628,7 +628,7 @@ package org.apache.hadoop.hbase.regionserver.HRegion;
     return results;
   }
 
-	// dolly: 太难了md, 一下子搞不定阿哈哈..
+    // dolly: 太难了md, 一下子搞不定阿哈哈..
     private boolean nextInternal(List<Cell> results, ScannerContext scannerContext)
         throws IOException {
       if (!results.isEmpty()) {
@@ -964,11 +964,13 @@ d. 时间戳反转
 	(2)	rowkey设计越短越好，不要超过10~100个字节  
 	(3)	映射regionNo，这样既可以让数据均匀分布到各个region中，同时可以根据startkey和endkey可以get到同一批数据  
 
-## CMS GC ##
+## CMS GC
 
+0. 参考资料
 - [HBase GC的前生今世 – 身世篇](http://hbasefly.com/2016/05/21/hbase-gc-1/)
 - [HBase GC的前生今世 – 演进篇](http://hbasefly.com/2016/05/29/hbase-gc-2/)
 - [HBase最佳实践－CMS GC调优](http://hbasefly.com/2016/05/29/hbase-gc-2/)
 
+1. 调优经验
 - HBase 操作过程中需要大量的内存开销，毕竟 Table 是可以缓存在内存中的，一般会分配整个可用内存的 70%给 HBase 的 Java 堆。但是不建议分配非常大的堆内存，因为 FGC 过程持续太久会导致 RegionServer 处于长期不可用状态，一般 16~48G 内存就可以了，如果因为框架占用内存过高导致系统内存不足，框架一样会被系统服务拖死。
 - RegionServer内存大于32GB，建议使用G1GC策略; 一般情况ParallelGC + CMS即可
