@@ -473,7 +473,7 @@
     }
   }
  ```
-9）HBase-2.X源码
+9）HBase-2.x源码
 
  ```java
   /**
@@ -567,12 +567,14 @@
   }
  ```
 
-## 读流程 ##
+## 读流程
 
 - [HBase原理－数据读取流程解析](http://hbasefly.com/2016/12/21/hbase-getorscan/)
 - [HBase原理－迟到的‘数据读取流程’部分细节](http://hbasefly.com/2017/06/11/hbase-scan-2/)
 - [HBase最佳实践 – Scan用法大观园](http://hbasefly.com/2017/10/29/hbase-scan-3/)
 - [HBase最佳实践－读性能优化策略](http://hbasefly.com/2016/11/11/hbase%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5%ef%bc%8d%e8%af%bb%e6%80%a7%e8%83%bd%e4%bc%98%e5%8c%96%e7%ad%96%e7%95%a5/)
+- [hbase源码系列（十二）Get、Scan在服务端是如何处理？](https://www.cnblogs.com/cenyuhai/p/3734512.html)
+- [hbase源码系列（十五）终结篇&Scan续集-->如何查询出来下一个KeyValue](https://www.cnblogs.com/cenyuhai/p/3751662.html)
 
 ![](https://i.imgur.com/rlOHKlj.png)  
 1）Client 先访问 zookeeper，获取 hbase:meta 表位于哪个 Region Server。  
@@ -580,7 +582,263 @@
 3）与目标 Region Server 进行通讯；  
 4）分别在 Block Cache（读缓存），MemStore 和 Store File（HFile）中查询目标数据（**同时找**，只返回符合条件的时间戳对应的数据），并将查到的所有数据进行合并。此处所有数据是指同一条数据的不同版本（time stamp）或者不同的类型（Put/Delete）。  
 5）将**从文件中查询到的数据块**（Block，HFile 数据存储单元，默认大小为 64KB）缓存到 Block Cache。  
-6）将合并后的最终结果返回给客户端。
+6）将合并后的最终结果返回给客户端。  
+7）HBase-1.x源码, get方法
+
+```java
+package org.apache.hadoop.hbase.regionserver.HRegion;
+
+  @Override
+  public List<Cell> get(Get get, boolean withCoprocessor, long nonceGroup, long nonce)
+      throws IOException {
+    List<Cell> results = new ArrayList<Cell>();
+
+    // pre-get CP hook
+    if (withCoprocessor && (coprocessorHost != null)) {
+      if (coprocessorHost.preGet(get, results)) {
+        return results;
+      }
+    }
+    long before = EnvironmentEdgeManager.currentTime();
+    // dolly: get方法的底层也是scan
+    Scan scan = new Scan(get);
+
+    RegionScanner scanner = null;
+    try {
+      scanner = getScanner(scan, null, nonceGroup, nonce);
+      // dolly: 从next方法往下
+      scanner.next(results);
+    } finally {
+      if (scanner != null) {
+        scanner.close();
+      }
+    }
+
+    // post-get CP hook
+    if (withCoprocessor && (coprocessorHost != null)) {
+      coprocessorHost.postGet(get, results);
+    }
+
+    metricsUpdateForGet(results, before);
+
+    return results;
+  }
+
+	// dolly: 太难了md, 一下子搞不定阿哈哈..
+    private boolean nextInternal(List<Cell> results, ScannerContext scannerContext)
+        throws IOException {
+      if (!results.isEmpty()) {
+        throw new IllegalArgumentException("First parameter should be an empty list");
+      }
+      if (scannerContext == null) {
+        throw new IllegalArgumentException("Scanner context cannot be null");
+      }
+      RpcCallContext rpcCall = RpcServer.getCurrentCall();
+
+      // Save the initial progress from the Scanner context in these local variables. The progress
+      // may need to be reset a few times if rows are being filtered out so we save the initial
+      // progress.
+      int initialBatchProgress = scannerContext.getBatchProgress();
+      long initialSizeProgress = scannerContext.getSizeProgress();
+      long initialTimeProgress = scannerContext.getTimeProgress();
+
+      // The loop here is used only when at some point during the next we determine
+      // that due to effects of filters or otherwise, we have an empty row in the result.
+      // Then we loop and try again. Otherwise, we must get out on the first iteration via return,
+      // "true" if there's more data to read, "false" if there isn't (storeHeap is at a stop row,
+      // and joinedHeap has no more data to read for the last row (if set, joinedContinuationRow).
+      while (true) {
+        // Starting to scan a new row. Reset the scanner progress according to whether or not
+        // progress should be kept.
+        if (scannerContext.getKeepProgress()) {
+          // Progress should be kept. Reset to initial values seen at start of method invocation.
+          scannerContext.setProgress(initialBatchProgress, initialSizeProgress,
+            initialTimeProgress);
+        } else {
+          scannerContext.clearProgress();
+        }
+
+        if (rpcCall != null) {
+          // If a user specifies a too-restrictive or too-slow scanner, the
+          // client might time out and disconnect while the server side
+          // is still processing the request. We should abort aggressively
+          // in that case.
+          long afterTime = rpcCall.disconnectSince();
+          if (afterTime >= 0) {
+            throw new CallerDisconnectedException(
+                "Aborting on region " + getRegionInfo().getRegionNameAsString() + ", call " +
+                    this + " after " + afterTime + " ms, since " +
+                    "caller disconnected");
+          }
+        }
+
+        // Let's see what we have in the storeHeap.
+        Cell current = this.storeHeap.peek();
+
+        byte[] currentRow = null;
+        int offset = 0;
+        short length = 0;
+        if (current != null) {
+          currentRow = current.getRowArray();
+          offset = current.getRowOffset();
+          length = current.getRowLength();
+        }
+
+        boolean stopRow = isStopRow(currentRow, offset, length);
+        // When has filter row is true it means that the all the cells for a particular row must be
+        // read before a filtering decision can be made. This means that filters where hasFilterRow
+        // run the risk of encountering out of memory errors in the case that they are applied to a
+        // table that has very large rows.
+        boolean hasFilterRow = this.filter != null && this.filter.hasFilterRow();
+
+        // If filter#hasFilterRow is true, partial results are not allowed since allowing them
+        // would prevent the filters from being evaluated. Thus, if it is true, change the
+        // scope of any limits that could potentially create partial results to
+        // LimitScope.BETWEEN_ROWS so that those limits are not reached mid-row
+        if (hasFilterRow) {
+          if (LOG.isTraceEnabled()) {
+            LOG.trace("filter#hasFilterRow is true which prevents partial results from being "
+                + " formed. Changing scope of limits that may create partials");
+          }
+          scannerContext.setSizeLimitScope(LimitScope.BETWEEN_ROWS);
+          scannerContext.setTimeLimitScope(LimitScope.BETWEEN_ROWS);
+        }
+
+        // Check if we were getting data from the joinedHeap and hit the limit.
+        // If not, then it's main path - getting results from storeHeap.
+        if (joinedContinuationRow == null) {
+          // First, check if we are at a stop row. If so, there are no more results.
+          if (stopRow) {
+            if (hasFilterRow) {
+              filter.filterRowCells(results);
+            }
+            return scannerContext.setScannerState(NextState.NO_MORE_VALUES).hasMoreValues();
+          }
+
+          // Check if rowkey filter wants to exclude this row. If so, loop to next.
+          // Technically, if we hit limits before on this row, we don't need this call.
+          if (filterRowKey(currentRow, offset, length)) {
+            incrementCountOfRowsFilteredMetric(scannerContext);
+            // early check, see HBASE-16296
+            if (isFilterDoneInternal()) {
+              return scannerContext.setScannerState(NextState.NO_MORE_VALUES).hasMoreValues();
+            }
+            // Typically the count of rows scanned is incremented inside #populateResult. However,
+            // here we are filtering a row based purely on its row key, preventing us from calling
+            // #populateResult. Thus, perform the necessary increment here to rows scanned metric
+            incrementCountOfRowsScannedMetric(scannerContext);
+            boolean moreRows = nextRow(scannerContext, currentRow, offset, length);
+            if (!moreRows) {
+              return scannerContext.setScannerState(NextState.NO_MORE_VALUES).hasMoreValues();
+            }
+            results.clear();
+            continue;
+          }
+
+          // Ok, we are good, let's try to get some results from the main heap.
+          populateResult(results, this.storeHeap, scannerContext, currentRow, offset, length);
+
+          if (scannerContext.checkAnyLimitReached(LimitScope.BETWEEN_CELLS)) {
+            if (hasFilterRow) {
+              throw new IncompatibleFilterException(
+                  "Filter whose hasFilterRow() returns true is incompatible with scans that must "
+                      + " stop mid-row because of a limit. ScannerContext:" + scannerContext);
+            }
+            return true;
+          }
+
+          Cell nextKv = this.storeHeap.peek();
+          stopRow = nextKv == null ||
+              isStopRow(nextKv.getRowArray(), nextKv.getRowOffset(), nextKv.getRowLength());
+          // save that the row was empty before filters applied to it.
+          final boolean isEmptyRow = results.isEmpty();
+
+          // We have the part of the row necessary for filtering (all of it, usually).
+          // First filter with the filterRow(List).
+          FilterWrapper.FilterRowRetCode ret = FilterWrapper.FilterRowRetCode.NOT_CALLED;
+          if (hasFilterRow) {
+            ret = filter.filterRowCellsWithRet(results);
+
+            // We don't know how the results have changed after being filtered. Must set progress
+            // according to contents of results now. However, a change in the results should not
+            // affect the time progress. Thus preserve whatever time progress has been made
+            long timeProgress = scannerContext.getTimeProgress();
+            if (scannerContext.getKeepProgress()) {
+              scannerContext.setProgress(initialBatchProgress, initialSizeProgress,
+                initialTimeProgress);
+            } else {
+              scannerContext.clearProgress();
+            }
+            scannerContext.setTimeProgress(timeProgress);
+            scannerContext.incrementBatchProgress(results.size());
+            for (Cell cell : results) {
+              scannerContext.incrementSizeProgress(CellUtil.estimatedHeapSizeOfWithoutTags(cell));
+            }
+          }
+
+          if (isEmptyRow || ret == FilterWrapper.FilterRowRetCode.EXCLUDE || filterRow()) {
+            incrementCountOfRowsFilteredMetric(scannerContext);
+            results.clear();
+            boolean moreRows = nextRow(scannerContext, currentRow, offset, length);
+            if (!moreRows) {
+              return scannerContext.setScannerState(NextState.NO_MORE_VALUES).hasMoreValues();
+            }
+
+            // This row was totally filtered out, if this is NOT the last row,
+            // we should continue on. Otherwise, nothing else to do.
+            if (!stopRow) continue;
+            return scannerContext.setScannerState(NextState.NO_MORE_VALUES).hasMoreValues();
+          }
+
+          // Ok, we are done with storeHeap for this row.
+          // Now we may need to fetch additional, non-essential data into row.
+          // These values are not needed for filter to work, so we postpone their
+          // fetch to (possibly) reduce amount of data loads from disk.
+          if (this.joinedHeap != null) {
+            boolean mayHaveData = joinedHeapMayHaveData(currentRow, offset, length);
+            if (mayHaveData) {
+              joinedContinuationRow = current;
+              populateFromJoinedHeap(results, scannerContext);
+
+              if (scannerContext.checkAnyLimitReached(LimitScope.BETWEEN_CELLS)) {
+                return true;
+              }
+            }
+          }
+        } else {
+          // Populating from the joined heap was stopped by limits, populate some more.
+          populateFromJoinedHeap(results, scannerContext);
+          if (scannerContext.checkAnyLimitReached(LimitScope.BETWEEN_CELLS)) {
+            return true;
+          }
+        }
+        // We may have just called populateFromJoinedMap and hit the limits. If that is
+        // the case, we need to call it again on the next next() invocation.
+        if (joinedContinuationRow != null) {
+          return scannerContext.setScannerState(NextState.MORE_VALUES).hasMoreValues();
+        }
+
+        // Finally, we are done with both joinedHeap and storeHeap.
+        // Double check to prevent empty rows from appearing in result. It could be
+        // the case when SingleColumnValueExcludeFilter is used.
+        if (results.isEmpty()) {
+          incrementCountOfRowsFilteredMetric(scannerContext);
+          boolean moreRows = nextRow(scannerContext, currentRow, offset, length);
+          if (!moreRows) {
+            return scannerContext.setScannerState(NextState.NO_MORE_VALUES).hasMoreValues();
+          }
+          if (!stopRow) continue;
+        }
+
+        if (stopRow) {
+          return scannerContext.setScannerState(NextState.NO_MORE_VALUES).hasMoreValues();
+        } else {
+          return scannerContext.setScannerState(NextState.MORE_VALUES).hasMoreValues();
+        }
+      }
+    }
+```
+
 
 ## 读写的一致性问题
 
@@ -654,6 +912,7 @@ package org.apache.hadoop.hbase.regionserver.MultiVersionConcurrencyControl;
 
 - [HBase Compaction的前生今世－身世之旅](http://hbasefly.com/2016/07/13/hbase-compaction-1/)
 - [HBase Compaction的前生今世－改造之路](http://hbasefly.com/2016/07/25/hbase-compaction-2/)
+- [hbase源码系列（十四）Compact和Split](https://www.cnblogs.com/cenyuhai/p/3746473.html)
 
 1. 由于memstore每次刷写都会生成一个新的HFile，且同一个字段的不同版本（timestamp）和不同类型（Put/Delete）有可能会分布在不同的HFile中，因此查询时需要遍历所有的HFile。为了减少 HFile 的个数，以及清理掉过期和删除的数据，会进行 StoreFile Compaction。  
 2. 作用:  
@@ -670,11 +929,16 @@ b. CompactionChecker线程，周期轮询
 c. 手动触发compact
 
 ## Region Split ##
-默认情况下，每个 Table 起初只有一个 Region，随着数据的不断写入，Region 会自动进行拆分。刚拆分时，两个子 Region 都位于当前的 Region Server，但处于负载均衡的考虑，HMaster 有可能会将某个 Region 转移给其他的 Region Server。  
-Region Split 时机：  
-(1) 当 1 个region中的某个Store下所有StoreFile的总大小超过hbase.hregion.max.filesize，该 Region 就会进行拆分（0.94 版本之前）。  
-(2) 当 1 个 region 中 的某 个 Store 下所有 StoreFile 的总大小超过 Min(R^2 × "hbase.hregion.memstore.flush.size", hbase.hregion.max.filesize")，该 Region 就会进行拆分，其中 R 为当前 Region Server 中属于该 Table 的个数（0.94 版本之后）。  
-(3) 每次切分不一定都一样大：涉及到**middleKey**查询
+
+0. 参考资料  
+- [HBase原理 – 所有Region切分的细节都在这里了](http://hbasefly.com/2017/08/27/hbase-split/)
+
+- [hbase源码系列（十四）Compact和Split](https://www.cnblogs.com/cenyuhai/p/3746473.html)
+1. 默认情况下，每个 Table 起初只有一个 Region，随着数据的不断写入，Region 会自动进行拆分。刚拆分时，两个子 Region 都位于当前的 Region Server，但处于负载均衡的考虑，HMaster 有可能会将某个 Region 转移给其他的 Region Server。  
+   Region Split 时机：  
+   (1) 当 1 个region中的某个Store下所有StoreFile的总大小超过hbase.hregion.max.filesize，该 Region 就会进行拆分（0.94 版本之前）。  
+   (2) 当 1 个 region 中 的某 个 Store 下所有 StoreFile 的总大小超过 Min(R^2 × "hbase.hregion.memstore.flush.size", hbase.hregion.max.filesize")，该 Region 就会进行拆分，其中 R 为当前 Region Server 中属于该 Table 的个数（0.94 版本之后）。  
+   (3) 每次切分**不一定都一样大**：涉及到**middleKey**查询
 
 ## rowkey设计 ##
 1. 原则:  
