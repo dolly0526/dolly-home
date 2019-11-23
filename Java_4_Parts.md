@@ -391,9 +391,12 @@ private static final Object PRESENT = new Object();
 2019/10/3 14:20:01 
 
 ## 进程/线程/协程 ##
-进程: 每个任务(例如.exe)会起一个进程  
-线程: 轻量级的进程, 每个进程可以起多个线程  
-协程: 
+
+- 参考: [进程、线程和协程之间的区别和联系](https://blog.csdn.net/daaikuaichuan/article/details/82951084)
+
+进程: 资源分配的最小单位  
+线程: 调度执行的最小单位  
+协程: 用户态的轻量级线程
 
 **注意:**  
 

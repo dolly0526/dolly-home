@@ -4,7 +4,7 @@
 ## 参考资料 ##
 - [有态度的HBase/Spark/BigData - HBase](http://hbasefly.com/?vilqlm=bnem43&xgrony=vo0822)  
 - [岑玉海 - hbase源码系列](https://www.cnblogs.com/cenyuhai/tag/hbase%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/) 
-- [岑玉海 - hbase](https://www.cnblogs.com/cenyuhai/tag/hbase/ )
+- [岑玉海 - hbase](https://www.cnblogs.com/cenyuhai/tag/hbase/)
 -  [Openinx Blog](http://openinx.github.io/)  
 - 《尚硅谷大数据技术之HBase》
 - 《HBase原理与实践》
@@ -887,28 +887,183 @@ package org.apache.hadoop.hbase.regionserver.MultiVersionConcurrencyControl;
 ## MemStore Flush
 
 - [HBase – Memstore Flush深度解析](http://hbasefly.com/2016/03/23/hbase-memstore-flush/)
-- [HBase内存管理之MemStore进化论](http://hbasefly.com/2019/10/18/hbase-memstore-evolution/)
-- [hbase源码系列（十三）缓存机制MemStore与Block Cache](https://www.cnblogs.com/cenyuhai/p/3744789.html)
+- [Hbase Memstore 读写及 flush 源码分析](https://cloud.tencent.com/developer/article/1005758)
 
-1. 大小达到刷写阀值:  
-   (1) 当某个 memstore 的大小达到了  
-   hbase.hregion.memstore.flush.size （默认值 128M）  
-   时，其所在 region 的所有 memstore 都会刷写。  
-   (2) 当 memstore 的大小达到了  
-   hbase.hregion.memstore.flush.size （默认值 128M）× hbase.hregion.memstore.block.multiplier （默认值 4）  
-   时，会阻止继续往该 memstore 写数据。
-2. 整个RegionServer的memstore总和达到阀值:  
-   (1) 当 region server 中 memstore 的总大小达到  
-   java_heapsize × hbase.regionserver.global.memstore.size （默认值 0.4）× hbase.regionserver.global.memstore.size.lower.limit （默认值 0.95）  
-   时，region 会按照其所有 memstore 的大小顺序（由大到小）依次进行刷写。直到 region server
-   中所有 memstore 的总大小减小到上述值以下。  
-   (2) 当 region server 中 memstore 的总大小达到  
-   java_heapsize × hbase.regionserver.global.memstore.size （默认值 0.4）  
-   时，会阻止继续往所有的 memstore 写数据。
-3. 到达自动刷写的时间，也会触发 memstore flush。自动刷新的时间间隔由该属性进行配置  
-   hbase.regionserver.optionalcacheflushinterval （默认 1 小时）。
-4. 当 WAL 文件的数量超过 hbase.regionserver.max.logs，region 会按照时间顺序依次进行刷写，直到 WAL 文件数量减小到 hbase.regionserver.max.log 以下（该属性名已经废弃，现无需手动设置，最大值为 32）。
-5. 手动触发flush
+1. Flush触发条件
+
+- 大小达到刷写阀值:  
+  (1) 当某个 memstore 的大小达到了  
+  hbase.hregion.memstore.flush.size （默认值 128M）  
+  时，其所在 region 的所有 memstore 都会刷写。  
+  (2) 当 memstore 的大小达到了  
+  hbase.hregion.memstore.flush.size （默认值 128M）× hbase.hregion.memstore.block.multiplier （默认值 4）  
+  时，会阻止继续往该 memstore 写数据。
+
+- 整个RegionServer的memstore总和达到阀值:  
+  (1) 当 region server 中 memstore 的总大小达到  
+  java_heapsize × hbase.regionserver.global.memstore.size （默认值 0.4）× hbase.regionserver.global.memstore.size.lower.limit （默认值 0.95）  
+  时，region 会按照其所有 memstore 的大小顺序（由大到小）依次进行刷写。直到 region server
+  中所有 memstore 的总大小减小到上述值以下。  
+  (2) 当 region server 中 memstore 的总大小达到  
+  java_heapsize × hbase.regionserver.global.memstore.size （默认值 0.4）  
+  时，会阻止继续往所有的 memstore 写数据。
+
+- 到达自动刷写的时间，也会触发 memstore flush。自动刷新的时间间隔由该属性进行配置  
+  hbase.regionserver.optionalcacheflushinterval （默认 1 小时）。
+
+- 当 WAL 文件的数量超过 hbase.regionserver.max.logs，region 会按照时间顺序依次进行刷写，直到 WAL 文件数量减小到 hbase.regionserver.max.log 以下（该属性名已经废弃，现无需手动设置，最大值为 32）。
+
+- 手动触发flush
+
+2. HBase-1.x源码
+
+```java
+package org.apache.hadoop.hbase.regionserver.HRegion;
+
+  /**
+   * Flush the cache.
+   *
+   * When this method is called the cache will be flushed unless:
+   * <ol>
+   *   <li>the cache is empty</li>
+   *   <li>the region is closed.</li>
+   *   <li>a flush is already in progress</li>
+   *   <li>writes are disabled</li>
+   * </ol>
+   *
+   * <p>This method may block for some time, so it should not be called from a
+   * time-sensitive thread.
+   * @param forceFlushAllStores whether we want to flush all stores
+   * @param writeFlushRequestWalMarker whether to write the flush request marker to WAL
+   * @return whether the flush is success and whether the region needs compacting
+   *
+   * @throws IOException general io exceptions
+   * @throws DroppedSnapshotException Thrown when replay of wal is required
+   * because a Snapshot was not properly persisted. The region is put in closing mode, and the
+   * caller MUST abort after this.
+   */
+  public FlushResult flushcache(boolean forceFlushAllStores, boolean writeFlushRequestWalMarker)
+      throws IOException {
+    // fail-fast instead of waiting on the lock
+    if (this.closing.get()) {
+      String msg = "Skipping flush on " + this + " because closing";
+      LOG.debug(msg);
+      return new FlushResultImpl(FlushResult.Result.CANNOT_FLUSH, msg, false);
+    }
+    MonitoredTask status = TaskMonitor.get().createStatus("Flushing " + this);
+    status.setStatus("Acquiring readlock on region");
+    // block waiting for the lock for flushing cache
+    // dolly: 加锁
+    lock.readLock().lock();
+    try {
+      if (this.closed.get()) {
+        String msg = "Skipping flush on " + this + " because closed";
+        LOG.debug(msg);
+        status.abort(msg);
+        return new FlushResultImpl(FlushResult.Result.CANNOT_FLUSH, msg, false);
+      }
+      if (coprocessorHost != null) {
+        status.setStatus("Running coprocessor pre-flush hooks");
+        coprocessorHost.preFlush();
+      }
+      // TODO: this should be managed within memstore with the snapshot, updated only after flush
+      // successful
+      if (numMutationsWithoutWAL.get() > 0) {
+        numMutationsWithoutWAL.set(0);
+        dataInMemoryWithoutWAL.set(0);
+      }
+      // dolly: 获得同步状态
+      synchronized (writestate) {
+        if (!writestate.flushing && writestate.writesEnabled) {
+          this.writestate.flushing = true;
+        } else {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("NOT flushing memstore for region " + this
+                + ", flushing=" + writestate.flushing + ", writesEnabled="
+                + writestate.writesEnabled);
+          }
+          String msg = "Not flushing since "
+              + (writestate.flushing ? "already flushing"
+              : "writes not enabled");
+          status.abort(msg);
+          return new FlushResultImpl(FlushResult.Result.CANNOT_FLUSH, msg, false);
+        }
+      }
+
+      try {
+        // dolly: 获得需要Flush的Stores
+        Collection<Store> specificStoresToFlush =
+            forceFlushAllStores ? stores.values() : flushPolicy.selectStoresToFlush();
+        // dolly: 具体的Flush事务
+        FlushResult fs = internalFlushcache(specificStoresToFlush,
+          status, writeFlushRequestWalMarker);
+
+        if (coprocessorHost != null) {
+          status.setStatus("Running post-flush coprocessor hooks");
+          coprocessorHost.postFlush();
+        }
+
+        // dolly: 标记为成功
+        status.markComplete("Flush successful");
+        return fs;
+      } finally {
+        synchronized (writestate) {
+          writestate.flushing = false;
+          this.writestate.flushRequested = false;
+          // dolly: 唤醒其他线程
+          writestate.notifyAll();
+        }
+      }
+    } finally {
+      // dolly: 释放锁
+      lock.readLock().unlock();
+      status.cleanup();
+    }
+  }
+
+  /**
+   * Flush the memstore. Flushing the memstore is a little tricky. We have a lot
+   * of updates in the memstore, all of which have also been written to the wal.
+   * We need to write those updates in the memstore out to disk, while being
+   * able to process reads/writes as much as possible during the flush
+   * operation.
+   * <p>
+   * This method may block for some time. Every time you call it, we up the
+   * regions sequence id even if we don't flush; i.e. the returned region id
+   * will be at least one larger than the last edit applied to this region. The
+   * returned id does not refer to an actual edit. The returned id can be used
+   * for say installing a bulk loaded file just ahead of the last hfile that was
+   * the result of this flush, etc.
+   *
+   * @param wal
+   *          Null if we're NOT to go via wal.
+   * @param myseqid
+   *          The seqid to use if <code>wal</code> is null writing out flush
+   *          file.
+   * @param storesToFlush
+   *          The list of stores to flush.
+   * @return object describing the flush's state
+   * @throws IOException
+   *           general io exceptions
+   * @throws DroppedSnapshotException
+   *           Thrown when replay of wal is required because a Snapshot was not
+   *           properly persisted.
+   */
+  protected FlushResult internalFlushcache(final WAL wal, final long myseqid,
+      final Collection<Store> storesToFlush, MonitoredTask status, boolean writeFlushWalMarker)
+          throws IOException {
+    // dolly: 类似两阶段提交方式
+    // dolly: 准备快照和中间临时文件
+    PrepareFlushResult result
+      = internalPrepareFlushCache(wal, myseqid, storesToFlush, status, writeFlushWalMarker);
+    if (result.result == null) {
+      // dolly: 把快照刷到磁盘, 保存在临时文件夹下; 再把临时文件夹移动到文件根路径
+      return internalFlushCacheAndCommit(wal, status, result, storesToFlush);
+    } else {
+      return result.result; // early exit due to failure from prepare stage
+    }
+  }
+```
 
 ## StoreFile Compaction ##
 
@@ -1134,6 +1289,8 @@ d. 时间戳反转
 - [HBase GC的前生今世 – 演进篇](http://hbasefly.com/2016/05/29/hbase-gc-2/)
 - [HBase最佳实践－CMS GC调优](http://hbasefly.com/2016/05/29/hbase-gc-2/)
 
-1. 调优经验
+1. CMS失效  
+![](https://i.imgur.com/wrEQ8uC.png)
+2. 调优经验
 - HBase 操作过程中需要大量的内存开销，毕竟 Table 是可以缓存在内存中的，一般会分配整个可用内存的 70%给 HBase 的 Java 堆。但是不建议分配非常大的堆内存，因为 FGC 过程持续太久会导致 RegionServer 处于长期不可用状态，一般 16~48G 内存就可以了，如果因为框架占用内存过高导致系统内存不足，框架一样会被系统服务拖死。
 - RegionServer内存大于32GB，建议使用G1GC策略; 一般情况ParallelGC + CMS即可
