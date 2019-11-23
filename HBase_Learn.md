@@ -1206,8 +1206,8 @@ package org.apache.hadoop.hbase.regionserver.compactions.RatioBasedCompactionPol
 
 0. 参考资料  
 - [HBase原理 – 所有Region切分的细节都在这里了](http://hbasefly.com/2017/08/27/hbase-split/)
-
 - [hbase源码系列（十四）Compact和Split](https://www.cnblogs.com/cenyuhai/p/3746473.html)
+
 1. 默认情况下，每个 Table 起初只有一个 Region，随着数据的不断写入，Region 会自动进行拆分。刚拆分时，两个子 Region 都位于当前的 Region Server，但处于负载均衡的考虑，HMaster 有可能会将某个 Region 转移给其他的 Region Server。  
    Region Split 时机：  
    (1) 当 1 个region中的某个Store下所有StoreFile的总大小超过hbase.hregion.max.filesize，该 Region 就会进行拆分（0.94 版本之前）。  
