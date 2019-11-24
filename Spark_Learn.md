@@ -246,8 +246,7 @@ bin/spark-submit \
 8. YARN部署Spark流程图
  - 图解  
 ![](https://i.imgur.com/dOqCRik.png)
- - 源码级图解
-![](https://i.imgur.com/JOMFF8q.png)  
+ - 源码级图解  
 ![](https://i.imgur.com/qQZDWNz.png)
 
 ## 通讯架构 ##
@@ -286,7 +285,7 @@ sc.textFile("file:///app/software/spark/README.md")
 2. 任务调度概述  
  - 当Driver起来后，Driver则会根据用户程序逻辑准备任务，并根据Executor资源情况逐步分发任务。在详细阐述任务调度前，首先说明下Spark里的几个概念。一个Spark应用程序包括Job、Stage以及Task三个概念：  
 a. Job是以Action方法为界，遇到一个Action方法则触发一个Job；  
-b. Stage是Job的子集，以RDD宽依赖(即Shuffle)为界，遇到Shuffle做一次划分；  
+b. Stage是Job的子集，以RDD宽依赖(即**Shuffle**)为界，遇到Shuffle做一次划分；  
 c. Task是Stage的子集，以并行度(分区数)来衡量，分区数是多少，则有多少个task。  
 Spark的任务调度总体来说分两路进行，一路是Stage级的调度，一路是Task级的调度
  - 图解  
@@ -315,6 +314,8 @@ Job由saveAsTextFile触发，该Job由RDD-3和saveAsTextFile方法组成，根�
 4. 图中，将TaskSetManager加入rootPool调度池中之后，调用SchedulerBackend的riviveOffers方法给driverEndpoint发送ReviveOffer消息；driverEndpoint收到ReviveOffer消息后调用makeOffers方法，过滤出活跃状态的Executor（这些Executor都是任务启动时反向注册到Driver的Executor），然后将Executor封装成WorkerOffer对象；准备好计算资源（WorkerOffer）后，taskScheduler基于这些资源调用resourceOffer在Executor上分配task。
 
 ## Shuffle解析 ##
+
+
 
 ### 数据倾斜
 

@@ -1082,10 +1082,10 @@ c. 提高读写数据的效率
 (1) Minor Compaction会将临近的若干个较小的 HFile 合并成一个较大的 HFile，但**不会**清理过期和删除的数据。  
 (2) Major Compaction 会将一个 Store 下的所有的 HFile 合并成一个大 HFile，并且**会**清理掉过期
 和删除的数据。
-3. compaction触发时机：
-a. 当数据块达到3块，HMaster触发合并操作，Region将数据块加载到本地，进行合并
-b. CompactionChecker线程，周期轮询
-c. 手动触发compact
+3. compaction触发时机：  
+a. 当数据块达到3块，HMaster触发合并操作，Region将数据块加载到本地，进行合并  
+b. CompactionChecker线程，周期轮询  
+c. 手动触发compact  
 5. HBase-1.x源码
 
 ```java
@@ -1278,7 +1278,7 @@ d. 时间戳反转
 	(2)	创建表时没有提前预分区，创建的表默认只有一个region，大量的数据写入当前region  
 	(3)	创建表已经提前预分区，但是设计的rowkey没有规律可循  
 3.2 热点问题的解决方案：  
-	(1)	随机数+业务主键，如果想让最近的数据快速get到，可以将时间戳加上  
+	(1)	随机数 + 业务主键，如果想让最近的数据快速get到，可以将时间戳加上  
 	(2)	rowkey设计越短越好，不要超过10~100个字节  
 	(3)	映射regionNo，这样既可以让数据均匀分布到各个region中，同时可以根据startkey和endkey可以get到同一批数据  
 
