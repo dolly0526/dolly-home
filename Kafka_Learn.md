@@ -9,7 +9,7 @@
 ![](https://i.imgur.com/IeQLJ1V.png)  
  - Producer：消息生产者，就是向kafka broker发消息的客户端；
  - Consumer：消息消费者，向kafka broker取消息的客户端；
- - Consumer Group（CG）：消费者组，由多个consumer组成。消费者组内每个消费者负责消费不同分区的数据，一个分区只能由一个消费者消费；消费者组之间互不影响。所有的消费者都属于某个消费者组，即消费者组是逻辑上的一个订阅者。
+ - Consumer Group（CG）：消费者组，由多个consumer组成。消费者组内每个消费者负责消费不同分区的数据，**一个分区只能由一个消费者消费**；消费者组之间互不影响。所有的消费者都属于某个消费者组，即消费者组是逻辑上的一个订阅者。
  - Broker：一台kafka服务器就是一个broker。一个集群由多个broker组成。一个broker可以容纳多个topic。
  - Topic：可以理解为一个队列，生产者和消费者面向的都是一个topic；
  - Partition：为了实现扩展性，一个非常大的topic可以分布到多个broker（即服务器）上，一个topic可以分为多个partition，每个partition是一个有序的队列；
@@ -53,7 +53,10 @@ acks：
 0：producer不等待broker的ack，这一操作提供了一个最低的延迟，broker一接收到还没有写入磁盘就已经返回，当broker故障时有可能丢失数据；  
 1：producer等待broker的ack，partition的leader落盘成功后返回ack，如果在follower同步成功之前leader故障，那么将会丢失数据；  
 -1（all）：producer等待broker的ack，partition的leader和follower全部落盘成功后才返回ack。但是如果在follower同步完成后，broker发送ack之前，leader发生故障，那么会造成数据重复。
-3. Exactly Once: 在0.11版本之后，Kafka引入了幂等性机制（idempotent），配合acks = -1时的at least once语义，实现了producer到broker的exactly once语义。使用时，只需将enable.idempotence属性设置为true，kafka自动将acks属性设为-1。
+3. **Exactly Once**: 在0.11版本之后，Kafka引入了幂等性机制（idempotent），配合acks = -1时的at least once语义，实现了producer到broker的exactly once语义。使用时，只需将enable.idempotence属性设置为true，kafka自动将acks属性设为-1。
 
 ## P6面试题 ##
+
+- 大部分看《尚硅谷大数据技术之Kafka》就行了.. 比我写的好
+
 ![](https://i.imgur.com/DSpBRe8.png)

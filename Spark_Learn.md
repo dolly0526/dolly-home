@@ -8,8 +8,16 @@
 - [有态度的HBase/Spark/BigData - Spark](http://hbasefly.com/category/spark/)
 
 ## Spark Core ##
-1. 小故事  
+### 小故事  
+
 ![](https://i.imgur.com/uGo3gu9.png)
+
+### RDD
+
+0. 参考资料
+
+- [Spark源码系列（二）RDD详解](https://www.cnblogs.com/cenyuhai/p/3779125.html)
+
 2. RDD的理解  
 ![](https://i.imgur.com/7QDYWjB.png)
 3. RDD的特性  
@@ -19,11 +27,12 @@ RDD表示只读的分区的数据集，对RDD进行改动，只能通过RDD的�
  - **依赖**: RDDs通过操作算子进行转换，转换得到的新RDD包含了从其他RDDs衍生所必需的信息，RDDs之间维护着这种血缘关系，也称之为依赖。如下图所示，依赖包括两种，一种是窄依赖，RDDs之间分区是一一对应的，另一种是宽依赖，下游RDD的每个分区与上游RDD(也称之为父RDD)的每个分区都有关，是多对多的关系。
  - **缓存**: 如果在应用程序中多次使用同一个RDD，可以将该RDD缓存起来，该RDD只有在第一次计算的时候会根据血缘关系得到分区的数据，在后续其他地方用到该RDD的时候，会直接从缓存处取而不用再根据血缘关系计算，这样就加速后期的重用。如下图所示，RDD-1经过一系列的转换后得到RDD-n并保存到hdfs，RDD-1在这一过程中会有个中间结果，如果将其缓存到内存，那么在随后的RDD-1转换到RDD-m这一过程中，就不会计算其之前的RDD-0了。
  - **CheckPoint**: 虽然RDD的血缘关系天然地可以实现容错，当RDD的某个分区数据失败或丢失，可以通过血缘关系重建。但是对于长时间迭代型应用来说，随着迭代的进行，RDDs之间的血缘关系会越来越长，一旦在后续迭代过程中出错，则需要通过非常长的血缘关系去重建，势必影响性能。为此，RDD支持checkpoint将数据保存到持久化的存储中，这样就可以切断之前的血缘关系，因为checkpoint后的RDD不需要知道它的父RDDs了，它可以从checkpoint处拿到数据。
-4. groupByKey和reduceByKey
+### groupByKey和reduceByKey
+
  - 参考: [reduceByKey和groupByKey区别与用法](https://blog.csdn.net/weixin_41804049/article/details/80373741)
  - groupByKey: groupByKey 也是对每个 key 进行操作，但只生成一个 sequence。
 
-```
+```scala
   /**
    * Group the values for each key in the RDD into a single sequence. Allows controlling the
    * partitioning of the resulting key-value pair RDD by passing a Partitioner.
@@ -45,7 +54,7 @@ RDD表示只读的分区的数据集，对RDD进行改动，只能通过RDD的�
     val mergeValue = (buf: CompactBuffer[V], v: V) => buf += v
     val mergeCombiners = (c1: CompactBuffer[V], c2: CompactBuffer[V]) => c1 ++= c2
     val bufs = combineByKeyWithClassTag[CompactBuffer[V]](
-	  //mapSideCombine设置为false, 在map端不会合并
+	  // dolly: mapSideCombine设置为false, 在map端不会合并
       createCombiner, mergeValue, mergeCombiners, partitioner, mapSideCombine = false)
     bufs.asInstanceOf[RDD[(K, Iterable[V])]]
   }
@@ -53,14 +62,14 @@ RDD表示只读的分区的数据集，对RDD进行改动，只能通过RDD的�
  - reduceByKey: 在一个(K,V)的 RDD 上调用，返回一个(K,V)的 RDD，使用指定的 reduce 函数，将相同
 key 的值聚合到一起，reduce 任务的个数可以通过第二个可选的参数来设置。
 
-```
+```scala
   /**
    * Merge the values for each key using an associative and commutative reduce function. This will
    * also perform the merging locally on each mapper before sending results to a reducer, similarly
    * to a "combiner" in MapReduce.
    */
   def reduceByKey(partitioner: Partitioner, func: (V, V) => V): RDD[(K, V)] = self.withScope {
-	//mapSideCombine默认为true, 在map端会预先合并
+	// dolly: mapSideCombine默认为true, 在map端会预先合并
     combineByKeyWithClassTag[V]((v: V) => v, func, func, partitioner)
   }
 ```
@@ -80,6 +89,7 @@ c. 开发指导：reduceByKey 比 groupByKey，建议使用。但是需要注意
  - deploy-mode DEPLOY_MODE：决定了 Driver 的运行方式，可选值为Client 或者 Cluster。
 
 ### YARN-Cluster模式 ###
+
 1. YARN调度流程  
 ![](https://i.imgur.com/7kWlpbG.png)
 2. 任务提交流程
@@ -109,12 +119,20 @@ bin/spark-submit \
 ./examples/jars/spark-examples_2.11-2.1.1.jar \
 100
  ```
-4. Spark源码中特殊的类
+### spark-submit源码解析
+
+0. 参考资料
+
+- [Spark源码系列（一）spark-submit提交作业过程](https://www.cnblogs.com/cenyuhai/p/3775687.html)
+- [Spark源码系列（七）Spark on yarn具体实现](https://www.cnblogs.com/cenyuhai/p/3834894.html)
+
+1. Spark源码中特殊的类
  - Backend: 后台
  - rpcEnv:  RPC
  - amEndpoint: 终端
  - RpcEndpointAddress: 终端地址
-5. SparkSubmit源码解析
+2. SparkSubmit源码
+
  - 我们在spark-submit时, 会按某一种规则输入编写命令, SparkSubmit类主要是把参数和命令进行封装, 通过反射加载执行任务的类, 并向RM提交任务, 之后的事情交给YARN处理.
 
 
@@ -172,7 +190,8 @@ bin/spark-submit \
                     // 向Yarn提交应用，提交指令
                     -- yarnClient.submitApplication(appContext)
  ```
-6. ApplicationMaster源码解析
+3. ApplicationMaster源码
+
  - ApplicationMaster类先会创建AM类, 然后加载用户的类的main方法, 之后AM就作为该任务的Driver; 启动Driver线程, 向YARN申请资源, 之后分配资源给NM, 起多个Executor后台线程
  ```
 1) ApplicationMaster
@@ -221,7 +240,8 @@ bin/spark-submit \
                                         // command = bin/java org.apache.spark.executor.CoarseGrainedExecutorBackend
                                         -- prepareCommand
  ```
-7. CoarseGrainedExecutorBackend源码解析
+4. CoarseGrainedExecutorBackend源码
+
  - CoarseGrainedExecutorBackend类会起一个线程, 主要实现反向注册和接受返回信息
  ```
 1) CoarseGrainedExecutorBackend
@@ -243,31 +263,19 @@ bin/spark-submit \
 					//Executor准确来说, 是该类的一个属性
                     -- new Executor
  ```
-8. YARN部署Spark流程图
- - 图解  
+### 总结
+
+ - YARN部署Spark流程图  
 ![](https://i.imgur.com/dOqCRik.png)
  - 源码级图解  
 ![](https://i.imgur.com/qQZDWNz.png)
 
-## 通讯架构 ##
-1. 通信架构概述  
-![](https://i.imgur.com/bvI2uKK.png)  
-![](https://i.imgur.com/RDAgrtV.png)
-2. 通讯架构解析
- - 图解
-![](https://i.imgur.com/6CT8Gnb.png)
- - 解析  
-(1) RpcEndpoint：RPC 端点，Spark 针对每个节点（Client/Master/Worker）都称之为一个 Rpc 端点，且都实现 RpcEndpoint 接口，内部根据不同端点的需求，设计不同的消息和不同的业务处理，如果需要发送（询问）则调用 Dispatcher；  
-(2) RpcEnv：RPC 上下文环境，每个 RPC 端点运行时依赖的上下文环境称为RpcEnv；  
-(3) Dispatcher：消息分发器，针对于 RPC 端点需要发送消息或者从远程 RPC接收到的消息，分发至对应的指令收件箱/发件箱。如果指令接收方是自己则存入收件箱，如果指令接收方不是自己，则放入发件箱；  
-(4) Inbox： 指 令 消 息 收 件 箱 ， 一 个 本 地 RpcEndpoint 对 应 一 个 收 件 箱 ，Dispatcher 在 每 次 向 Inbox 存 入 消 息 时 ， 都 将 对 应 EndpointData 加 入 内 部ReceiverQueue 中 ， 另 外 Dispatcher 创 建 时 会 启 动 一 个 单 独 线 程 进 行 轮 询ReceiverQueue，进行收件箱消息消费；  
-(5) RpcEndpointRef：RpcEndpointRef 是对远程 RpcEndpoint 的一个引用。当我们需要向一个具体的 RpcEndpoint 发送消息时，一般我们需要获取到该 RpcEndpoint的引用，然后通过该应用发送消息。  
-(6) OutBox： 指 令 消 息 发 件 箱 ， 对 于 当 前 RpcEndpoint 来 说 ， 一 个 目 标RpcEndpoint 对应一个发件箱，如果向多个目标 RpcEndpoint 发送信息，则有多个OutBox。当消息放入 Outbox后，紧接着通过 TransportClient 将消息发送出去。消息放入发件箱以及发送过程是在同一个线程中进行；  
-(7) RpcAddress：表示远程的 RpcEndpointRef 的地址，Host + Port。  
-(8) TransportClient ： Netty 通 信 客 户 端 ， 一 个 OutBox 对 应 一 个 TransportClient，TransportClient 不断轮询 OutBox，根据 OutBox 消息的 receiver 信息，请求对应的远程TransportServer；  
-(9) TransportServer ： Netty 通 信 服 务 端 ， 一 个 RpcEndpoint 对 应 一 个TransportServer，接受远程消息后调用 Dispatcher 分发消息至对应收发件箱；
-
 ## 任务调度机制 ##
+
+0. 参考资料
+
+- [Spark源码系列（三）作业运行过程](https://www.cnblogs.com/cenyuhai/p/3784602.html)
+
 1. WordCount
  - 图解  
 ![](https://i.imgur.com/pKP1hx2.png)
@@ -313,9 +321,111 @@ Job由saveAsTextFile触发，该Job由RDD-3和saveAsTextFile方法组成，根�
 ![](https://i.imgur.com/c2bl5ES.png)
 4. 图中，将TaskSetManager加入rootPool调度池中之后，调用SchedulerBackend的riviveOffers方法给driverEndpoint发送ReviveOffer消息；driverEndpoint收到ReviveOffer消息后调用makeOffers方法，过滤出活跃状态的Executor（这些Executor都是任务启动时反向注册到Driver的Executor），然后将Executor封装成WorkerOffer对象；准备好计算资源（WorkerOffer）后，taskScheduler基于这些资源调用resourceOffer在Executor上分配task。
 
+## 通讯架构 ##
+
+1. 通信架构概述  
+   ![](https://i.imgur.com/bvI2uKK.png)  
+   ![](https://i.imgur.com/RDAgrtV.png)
+2. 通讯架构解析
+
+ - 图解
+   ![](https://i.imgur.com/6CT8Gnb.png)
+ - 解析  
+   (1) RpcEndpoint：RPC 端点，Spark 针对每个节点（Client/Master/Worker）都称之为一个 Rpc 端点，且都实现 RpcEndpoint 接口，内部根据不同端点的需求，设计不同的消息和不同的业务处理，如果需要发送（询问）则调用 Dispatcher；  
+   (2) RpcEnv：RPC 上下文环境，每个 RPC 端点运行时依赖的上下文环境称为RpcEnv；  
+   (3) Dispatcher：消息分发器，针对于 RPC 端点需要发送消息或者从远程 RPC接收到的消息，分发至对应的指令收件箱/发件箱。如果指令接收方是自己则存入收件箱，如果指令接收方不是自己，则放入发件箱；  
+   (4) Inbox： 指 令 消 息 收 件 箱 ， 一 个 本 地 RpcEndpoint 对 应 一 个 收 件 箱 ，Dispatcher 在 每 次 向 Inbox 存 入 消 息 时 ， 都 将 对 应 EndpointData 加 入 内 部ReceiverQueue 中 ， 另 外 Dispatcher 创 建 时 会 启 动 一 个 单 独 线 程 进 行 轮 询ReceiverQueue，进行收件箱消息消费；  
+   (5) RpcEndpointRef：RpcEndpointRef 是对远程 RpcEndpoint 的一个引用。当我们需要向一个具体的 RpcEndpoint 发送消息时，一般我们需要获取到该 RpcEndpoint的引用，然后通过该应用发送消息。  
+   (6) OutBox： 指 令 消 息 发 件 箱 ， 对 于 当 前 RpcEndpoint 来 说 ， 一 个 目 标RpcEndpoint 对应一个发件箱，如果向多个目标 RpcEndpoint 发送信息，则有多个OutBox。当消息放入 Outbox后，紧接着通过 TransportClient 将消息发送出去。消息放入发件箱以及发送过程是在同一个线程中进行；  
+   (7) RpcAddress：表示远程的 RpcEndpointRef 的地址，Host + Port。  
+   (8) TransportClient ： Netty 通 信 客 户 端 ， 一 个 OutBox 对 应 一 个 TransportClient，TransportClient 不断轮询 OutBox，根据 OutBox 消息的 receiver 信息，请求对应的远程TransportServer；  
+   (9) TransportServer ： Netty 通 信 服 务 端 ， 一 个 RpcEndpoint 对 应 一 个TransportServer，接受远程消息后调用 Dispatcher 分发消息至对应收发件箱；
+
 ## Shuffle解析 ##
 
+0. 参考资料
 
+- 《尚硅谷大数据技术之Spark内核解析》
+- [Spark源码系列（六）Shuffle的过程解析](https://www.cnblogs.com/cenyuhai/p/3826227.html)
+
+1. Spark-2.x源码
+
+```scala
+package org.apache.spark.shuffle.sort.SortShuffleManager;
+
+  /** Get a writer for a given partition. Called on executors by map tasks. */
+  override def getWriter[K, V](
+      handle: ShuffleHandle,
+      mapId: Int,
+      context: TaskContext): ShuffleWriter[K, V] = {
+    numMapsForShuffle.putIfAbsent(
+      handle.shuffleId, handle.asInstanceOf[BaseShuffleHandle[_, _, _]].numMaps)
+    val env = SparkEnv.get
+    handle match {
+      case unsafeShuffleHandle: SerializedShuffleHandle[K @unchecked, V @unchecked] =>
+        new UnsafeShuffleWriter(
+          env.blockManager,
+          shuffleBlockResolver.asInstanceOf[IndexShuffleBlockResolver],
+          context.taskMemoryManager(),
+          unsafeShuffleHandle,
+          mapId,
+          context,
+          env.conf)
+      case bypassMergeSortHandle: BypassMergeSortShuffleHandle[K @unchecked, V @unchecked] =>
+        new BypassMergeSortShuffleWriter(
+          env.blockManager,
+          shuffleBlockResolver.asInstanceOf[IndexShuffleBlockResolver],
+          bypassMergeSortHandle,
+          mapId,
+          context,
+          env.conf)
+      case other: BaseShuffleHandle[K @unchecked, V @unchecked, _] =>
+        new SortShuffleWriter(shuffleBlockResolver, other, mapId, context)
+    }
+  }
+
+  /**
+   * Register a shuffle with the manager and obtain a handle for it to pass to tasks.
+   */
+  override def registerShuffle[K, V, C](
+      shuffleId: Int,
+      numMaps: Int,
+      dependency: ShuffleDependency[K, V, C]): ShuffleHandle = {
+    if (SortShuffleWriter.shouldBypassMergeSort(SparkEnv.get.conf, dependency)) {
+      // If there are fewer than spark.shuffle.sort.bypassMergeThreshold partitions and we don't
+      // need map-side aggregation, then write numPartitions files directly and just concatenate
+      // them at the end. This avoids doing serialization and deserialization twice to merge
+      // together the spilled files, which would happen with the normal code path. The downside is
+      // having multiple files open at a time and thus more memory allocated to buffers.
+      new BypassMergeSortShuffleHandle[K, V](
+        shuffleId, numMaps, dependency.asInstanceOf[ShuffleDependency[K, V, V]])
+      // dolly: 继续往里看, 一般有聚合的操作都不会走这个条件
+    } else if (SortShuffleManager.canUseSerializedShuffle(dependency)) {
+      // Otherwise, try to buffer map outputs in a serialized form, since this is more efficient:
+      new SerializedShuffleHandle[K, V](
+        shuffleId, numMaps, dependency.asInstanceOf[ShuffleDependency[K, V, V]])
+    } else {
+      // Otherwise, buffer map outputs in a deserialized form:
+      new BaseShuffleHandle(shuffleId, numMaps, dependency)
+    }
+  }
+
+private[spark] object SortShuffleWriter {
+  def shouldBypassMergeSort(conf: SparkConf, dep: ShuffleDependency[_, _, _]): Boolean = {
+    // We cannot bypass sorting if we need to do map-side aggregation.
+    // dolly: 如果采用了map端预聚合, 则不能采用bypass方式
+    if (dep.mapSideCombine) {
+      require(dep.aggregator.isDefined, "Map-side combine without Aggregator specified!")
+      false
+    } else {
+      // dolly: spark.shuffle.sort.bypassMergeThreshold 默认为200
+      val bypassMergeThreshold: Int = conf.getInt("spark.shuffle.sort.bypassMergeThreshold", 200)
+      // dolly: shuffle map task 数量小于 spark.shuffle.sort.bypassMergeThreshold 参数值
+      dep.partitioner.numPartitions <= bypassMergeThreshold
+    }
+  }
+}
+```
 
 ### 数据倾斜
 
@@ -331,11 +441,22 @@ Job由saveAsTextFile触发，该Job由RDD-3和saveAsTextFile方法组成，根�
 
 - [Spark面对OOM问题的解决方法及优化总结](https://blog.csdn.net/yhb315279058/article/details/51035631)
 
+1. 案例
+
+## Spark SQL
+
+- [SparkSQL – 从0到1认识Catalyst](http://hbasefly.com/2017/03/01/sparksql-catalyst/)
+- [Spark源码系列（九）Spark SQL初体验之解析过程详解](https://www.cnblogs.com/cenyuhai/p/4133319.html)
+
+### Join
+
+- [SparkSQL – 有必要坐下来聊聊Join](http://hbasefly.com/2017/03/19/sparksql-basic-join/)
+
 ## Spark Streaming ##
 
-### Spark Streaming + Kafka ###
+- [Spark源码系列（八）Spark Streaming实例分析](https://www.cnblogs.com/cenyuhai/p/3841000.html)
 
-0. 参考资料
+### Spark Streaming + Kafka ###
 
 - [Spark踩坑记——Spark Streaming+Kafka](https://www.cnblogs.com/xlturing/p/6246538.html)
 
