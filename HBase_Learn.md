@@ -6,7 +6,6 @@
 - [岑玉海 - hbase源码系列](https://www.cnblogs.com/cenyuhai/tag/hbase%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/) 
 - [岑玉海 - hbase](https://www.cnblogs.com/cenyuhai/tag/hbase/)
 -  [Openinx Blog](http://openinx.github.io/)  
-- 《尚硅谷大数据技术之HBase》
 - 《HBase原理与实践》
 - 《HBase不睡觉书》
 
