@@ -314,15 +314,27 @@ Job由saveAsTextFile触发，该Job由RDD-3和saveAsTextFile方法组成，根�
 ![](https://i.imgur.com/c2bl5ES.png)
 4. 图中，将TaskSetManager加入rootPool调度池中之后，调用SchedulerBackend的riviveOffers方法给driverEndpoint发送ReviveOffer消息；driverEndpoint收到ReviveOffer消息后调用makeOffers方法，过滤出活跃状态的Executor（这些Executor都是任务启动时反向注册到Driver的Executor），然后将Executor封装成WorkerOffer对象；准备好计算资源（WorkerOffer）后，taskScheduler基于这些资源调用resourceOffer在Executor上分配task。
 
-## 问题与调优 ##
-### 数据倾斜 ###
+## Shuffle解析 ##
+
+### 数据倾斜
+
 0. 参考资料
- - [Spark性能优化之道——解决Spark数据倾斜（Data Skew）的N种姿势](https://www.cnblogs.com/cssdongl/p/6594298.html)
+
+- [Spark性能优化之道——解决Spark数据倾斜（Data Skew）的N种姿势](https://www.cnblogs.com/cssdongl/p/6594298.html)
+
+## 内存管理
 
 ### OOM
 
+0. 参考资料
 
+- [Spark面对OOM问题的解决方法及优化总结](https://blog.csdn.net/yhb315279058/article/details/51035631)
 
 ## Spark Streaming ##
+
 ### Spark Streaming + Kafka ###
+
+0. 参考资料
+
+- [Spark踩坑记——Spark Streaming+Kafka](https://www.cnblogs.com/xlturing/p/6246538.html)
 
