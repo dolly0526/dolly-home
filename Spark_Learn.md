@@ -247,7 +247,8 @@ bin/spark-submit \
  - 图解  
 ![](https://i.imgur.com/dOqCRik.png)
  - 源码级图解
-![](https://i.imgur.com/JOMFF8q.png)
+![](https://i.imgur.com/JOMFF8q.png)  
+![](https://i.imgur.com/qQZDWNz.png)
 
 ## 通讯架构 ##
 1. 通信架构概述  
@@ -318,5 +319,10 @@ Job由saveAsTextFile触发，该Job由RDD-3和saveAsTextFile方法组成，根�
 0. 参考资料
  - [Spark性能优化之道——解决Spark数据倾斜（Data Skew）的N种姿势](https://www.cnblogs.com/cssdongl/p/6594298.html)
 
+### OOM
+
+
+
 ## Spark Streaming ##
 ### Spark Streaming + Kafka ###
+

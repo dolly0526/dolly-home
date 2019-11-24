@@ -306,6 +306,7 @@ b. set global slow_query_log=1;
 [MySQL（十一）视图及存储过程](https://www.cnblogs.com/imyalost/p/6510065.html)
 
 # Hive原理
+
 ## Hive架构
 
 ![](https://i.imgur.com/YWCOWyf.png)

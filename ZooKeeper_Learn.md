@@ -70,6 +70,9 @@ numChildren = 1
 5. HDFS-HA功能通过配置Active/Standby两个NameNodes实现在集群中对NameNode的热备来解决上述问题。如果出现故障，如机器崩溃或机器需要升级维护，这时可通过此种方式将NameNode很快的切换到另外一台机器。
 
 ### 工作要点 ###  
+
+0. 本质上是**分布式锁**的应用
+
 1. 元数据管理方式需要改变  
  - 内存中各自保存一份元数据；  
  - Edits日志只有Active状态的NameNode节点可以做写操作  
@@ -256,7 +259,7 @@ d. 非常正常状态下的主备更替过程
 a. 不再接受Proposal ID小于等于（注意：这里是<=）当前请求的Prepare请求。  
 b. 不再接受Proposal ID小于（注意：这里是<）当前请求的Propose请求。  
 一个应答：  
-c.	不违背以前做出的承诺下，回复已经Accept过的提案中Proposal ID最大的那个提案的Value和Proposal ID，没有则返回空值。
+	c.	不违背以前做出的承诺下，回复已经Accept过的提案中Proposal ID最大的那个提案的Value和Proposal ID，没有则返回空值。
  - Propose: Proposer 收到多数Acceptors的Promise应答后，从应答中选择Proposal ID最大的提案的Value，作为本次要发起的提案。如果所有应答的提案Value均为空值，则可以自己随意决定提案Value。然后携带当前Proposal ID，向所有Acceptors发送Propose请求。
  - Accept: Acceptor收到Propose请求后，在不违背自己之前做出的承诺下，接受并持久化当前Proposal ID和提案Value。
  - Learn: Proposer收到多数Acceptors的Accept后，决议形成，将形成的决议发送给所有Learners。

@@ -1,8 +1,10 @@
 # HDFS原理和源码 #
 2019/10/20 13:58:52 
 
-##  ##
+##  文件块大小
 
+![](https://i.imgur.com/aWdeQoZ.png)  
+![](https://i.imgur.com/0KKqX3q.png)
 
 # YARN原理 #
 
