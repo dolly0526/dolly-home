@@ -440,14 +440,13 @@ private[spark] object SortShuffleWriter {
 ## 内存管理
 
 - 《尚硅谷大数据技术之Spark内核解析》
+- [Spark源码系列（五）分布式缓存](https://www.cnblogs.com/cenyuhai/p/3808774.html)
 
 ### OOM
 
 0. 参考资料
 
 - [Spark面对OOM问题的解决方法及优化总结](https://blog.csdn.net/yhb315279058/article/details/51035631)
-
-1. 案例
 
 ## Spark SQL
 
