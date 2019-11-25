@@ -354,6 +354,7 @@ Job由saveAsTextFile触发，该Job由RDD-3和saveAsTextFile方法组成，根�
 package org.apache.spark.shuffle.sort.SortShuffleManager;
 
   /** Get a writer for a given partition. Called on executors by map tasks. */
+  // dolly: 写到磁盘
   override def getWriter[K, V](
       handle: ShuffleHandle,
       mapId: Int,
@@ -361,6 +362,7 @@ package org.apache.spark.shuffle.sort.SortShuffleManager;
     numMapsForShuffle.putIfAbsent(
       handle.shuffleId, handle.asInstanceOf[BaseShuffleHandle[_, _, _]].numMaps)
     val env = SparkEnv.get
+    // dolly: 模式匹配选择一种Shuffle方式
     handle match {
       case unsafeShuffleHandle: SerializedShuffleHandle[K @unchecked, V @unchecked] =>
         new UnsafeShuffleWriter(
@@ -431,9 +433,13 @@ private[spark] object SortShuffleWriter {
 
 0. 参考资料
 
+- 《尚硅谷大数据技术之Spark性能调优与故障处理》
+
 - [Spark性能优化之道——解决Spark数据倾斜（Data Skew）的N种姿势](https://www.cnblogs.com/cssdongl/p/6594298.html)
 
 ## 内存管理
+
+- 《尚硅谷大数据技术之Spark内核解析》
 
 ### OOM
 
