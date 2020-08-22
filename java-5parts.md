@@ -1,7 +1,37 @@
+# 基础 #
+
+2019/8/5 17:05:52 
+
+## 遍历二叉树
+
+[java实现二叉树的遍历（递归和非递归）](https://blog.csdn.net/wang454592297/article/details/79472938)
+
+## 如何判断两个对象是否相等 ##
+
+[Java中如何判断两个对象是否相等（Java equals and ==）](https://blog.csdn.net/u013063153/article/details/78808923)
+
+## 参数传递机制 ##
+
+[java中方法的参数传递机制](https://www.cnblogs.com/lixiaolun/p/4311863.html)
+
+## 拷贝和浅拷贝 ##
+
+[细说 Java 的深拷贝和浅拷贝](https://www.cnblogs.com/plokmju/p/7357205.html)
+
+## 反射 ##
+
+[Java 反射详解](https://www.cnblogs.com/ysocean/p/6516248.html)
+
+## 异常 ##
+
+[深入理解Java中异常体系](https://blog.csdn.net/zhanaolu4821/article/details/81012382)
+
 # 集合 #
+
 2019/9/19 22:20:52  
 
 ## List ##
+
 ### ArrayList ###
 0. 参考资料
  - [Java集合源码分析](https://www.cnblogs.com/xujian2014/tag/Java%E9%9B%86%E5%90%88%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/)
@@ -120,6 +150,7 @@ void linkLast(E e) {
  ```
 
 ## Map ##
+
 ### HashMap ###
 0. 参考资料:  
  - [Java集合源码分析（四）HashMap](https://www.cnblogs.com/zhangyinhua/p/7698642.html)
@@ -365,35 +396,8 @@ public boolean add(E e) {
 private static final Object PRESENT = new Object();
  ```
 
+# JUC #
 
-# 基础 #
-2019/8/5 17:05:52 
-
-## 遍历二叉树
-
-[java实现二叉树的遍历（递归和非递归）](https://blog.csdn.net/wang454592297/article/details/79472938)
-
-## IO/NIO ##
-
-
-
-
-## 如何判断两个对象是否相等 ##
-[Java中如何判断两个对象是否相等（Java equals and ==）](https://blog.csdn.net/u013063153/article/details/78808923)
-
-## 参数传递机制 ##
-[java中方法的参数传递机制](https://www.cnblogs.com/lixiaolun/p/4311863.html)
-
-## 拷贝和浅拷贝 ##
-[细说 Java 的深拷贝和浅拷贝](https://www.cnblogs.com/plokmju/p/7357205.html)
-
-## 反射 ##
-[Java 反射详解](https://www.cnblogs.com/ysocean/p/6516248.html)
-
-## 异常 ##
-[深入理解Java中异常体系](https://blog.csdn.net/zhanaolu4821/article/details/81012382)
-
-# 高并发 #
 2019/10/3 14:20:01 
 
 ## 进程/线程/协程 ##
@@ -418,6 +422,7 @@ private static final Object PRESENT = new Object();
 [Linux常见的进程调度算法](https://www.cnblogs.com/alantu2018/p/8460451.html)
 
 ## 并发/并行 ##
+
 并发: 多个线程抢同一份资源, 偏重于多个任务交替执行  
 并行: 多件事情同时发生, 真正的同时执行
 
@@ -628,7 +633,8 @@ class ShareData {
 - [Java--读写锁的实现原理](https://blog.csdn.net/yupi1057/article/details/80787013#)
 - [Threadlocal](https://www.jianshu.com/p/3c5d7f09dfbd)
 
-# 虚拟机 #
+# JVM #
+
 2019/10/15 14:51:12 
 
 ## ClassLoader ##
@@ -865,23 +871,58 @@ public class ThreadTest {
 - GC的三种收集方法：标记清除、标记整理、复制算法的原理与特点，分别用在什么地方
 - Minor GC与Full GC分别在什么时候发生
 
+# IO #
+
+2020/8/22 15:22:35
+
+## IO和NIO的区别 ##
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlgy1ghzmulxk73j319m0ekq5e.jpg)
+
+- IO
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlgy1ghzmvgli7bj316e0futc2.jpg)
+
+- NIO
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlgy1ghzmwyyfvhj31aa0fwgo2.jpg)
+
+- Channel 负责**传输**，Buffer 负责**存储**
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlgy1ghzn1s8r5cj313c0fqtd9.jpg)
+
+##  ##
+
+
+
+
+
+
+
+
+
+
 
 # P6面试题 #
+
 2019/10/26 20:06:53 
 
 ## JMM ##
+
 1. 特征: 可见性, 原子性, 有序性
 2. 请你谈谈JMM: 多线程访问内存的规范
 ![](https://i.imgur.com/WuTuylK.png)  
 ![](https://i.imgur.com/lDT44F6.jpg)
 
 ### 可见性 ###
+
 volatile: 是JVM提供的**轻量级**的同步机制
 - 保证可见性
 - 不保证原子性
 - 禁止指令重排
 
 ### 原子性 ###
+
 不可分割, 完整性; 也即某个线程正在做某个具体业务时, 中间不可以被加塞或者被分割, 需要整体完整; 要么同时成功, 要么同时失败
 
 ### 有序性 ###
