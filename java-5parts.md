@@ -637,7 +637,10 @@ class ShareData {
 
 2019/10/15 14:51:12 
 
+![](https://tva1.sinaimg.cn/large/007S8ZIlly1gi94tzahk9j30c509e75r.jpg)
+
 ## ClassLoader ##
+
 1. 负责加载.class文件，.class文件在文件开头有特定的文件标示，将.class文件字节码内容加载到内存中，并将这些内容转换成**方法区**中的运行时数据结构。ClassLoader只负责.class文件的加载，至于它是否可以运行，则由**Execution Engine**决定  
 ![](https://i.imgur.com/oHjv06T.png)
 2. 不同的类加载器
@@ -1850,6 +1853,9 @@ b. 采用的标记清除算法会导致大量碎片
 3. 串行GC(Serial Old/Serial MSC)  
 ![](https://i.imgur.com/JV5xq0k.png)
 #### G1 ####
+
+1. 概述
+
 ![](https://i.imgur.com/XjTn7ML.png)  
 2. G1是什么?  
 ![](https://i.imgur.com/2yH4Ws6.png)  
