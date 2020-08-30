@@ -821,13 +821,14 @@ c. 缺点：此算法需要**暂停**整个应用，会产生**内存碎片** 
 ![](https://i.imgur.com/CYIgfFf.png)
 
 #### 总结 ####
+
 1. 三种算法比较  
  - 内存效率：复制算法 > 标记清除算法 > 标记整理算法（此处的效率只是简单的对比时间复杂度，实际情况不一定如此）。 
  - 内存整齐度：复制算法 = 标记整理算法 > 标记清除算法。 
  - 内存利用率：标记整理算法 = 标记清除算法 > 复制算法。
 2. 可以看出，效率上来说，复制算法是当之无愧的老大，但是却浪费了太多内存，而为了尽量兼顾上面所提到的三个指标，标记/整理算法相对来说更平滑一些，但效率上依然不尽如人意，它比复制算法多了一个标记的阶段，又比标记/清除多了一个整理内存的过程
-3. 没有最好的算法，只有最合适的算法。 ==========>  **分代收集算法**。
- - 年轻代 (Young Gen)   
+3. 没有最好的算法，只有最合适的算法。  ==>  **分代收集算法**。
+ - 年轻代 (Young Gen)   
 年轻代特点是区域相对老年代较小，对像存活率低。  
 这种情况**复制算法**的回收整理，速度是最快的。复制算法的效率只和当前存活对像大小有关，因而很适用于年轻代的回收。而复制算法内存利用率不高的问题，通过hotspot中的两个survivor的设计得到缓解。
  - 老年代 (Tenure Gen)  
@@ -871,7 +872,7 @@ public class ThreadTest {
 - GC的三种收集方法：标记清除、标记整理、复制算法的原理与特点，分别用在什么地方
 - Minor GC与Full GC分别在什么时候发生
 
-# IO #
+# IO/NIO #
 
 2020/8/22 15:22:35
 
@@ -891,7 +892,47 @@ public class ThreadTest {
 
 ![](https://tva1.sinaimg.cn/large/007S8ZIlgy1ghzn1s8r5cj313c0fqtd9.jpg)
 
-##  ##
+## 缓冲区（Buffer） ##
+
+- 定义
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlly1gi05koilh7j313e0kotdf.jpg)
+
+- 基本使用
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlly1gi05jeq4hjj312s0peaff.jpg)
+
+## 缓冲区的基本属性 ##
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlly1gi05ovh2xkj314a0lmwl1.jpg)
+
+![截屏2020-08-23 02.33.45](https://tva1.sinaimg.cn/large/007S8ZIlly1gi05nhlyb8j318u0own1x.jpg)
+
+## Buffer 的常用方法 ##
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlly1gi8mfwp33uj31cy0q8thw.jpg)
+
+## 缓冲区的数据操作 ##
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlly1gi8mgmkxq9j313o0nqgqy.jpg)
+
+## 直接与非直接缓冲区 ##
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlly1gi05vqs8nsj314g0oadqr.jpg)
+
+![截屏2020-08-23 02.41.18](https://tva1.sinaimg.cn/large/007S8ZIlly1gi05vs10z7j315q0u0gud.jpg)
+
+![截屏2020-08-23 02.41.29](https://tva1.sinaimg.cn/large/007S8ZIlly1gi05vtnn27j31510u0142.jpg)
+
+## 通道（Channel） ##
+
+
+
+
+
+
+
+
 
 
 
