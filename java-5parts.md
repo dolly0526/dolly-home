@@ -341,13 +341,15 @@ final void treeifyBin(Node<K,V>[] tab, int hash) {
     }
 }
  ```
+![249993-20170725160254943-1515467235](https://tva1.sinaimg.cn/large/007S8ZIlly1gia7ciwxb3j30vh0lcq51.jpg)
+
 3. 一些常量:  
-DEFAULT_INITIAL_CAPACITY: HashMap的默认容量，16  
-DEFAULT_LOAD_FACTOR: 默认填充因子, 0.75(越小则链表越少)  
-threshold：扩容的临界值(不会等到满才扩容, 因为不一定会满)，= 容量*填充因子：16 * 0.75 => 12  
-TREEIFY_THRESHOLD：Bucket中链表长度大于该默认值，转化为红黑树: 8  
-UNTREEIFY_THRESHOLD：当Bucket上的结点数小于这个值时树转链表: 6  
-MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的Bucket表容量: 64
+  DEFAULT_INITIAL_CAPACITY: HashMap的默认容量，16  
+  DEFAULT_LOAD_FACTOR: 默认填充因子, 0.75(越小则链表越少)  
+  threshold：扩容的临界值(不会等到满才扩容, 因为不一定会满)，= 容量*填充因子：16 * 0.75 => 12  
+  TREEIFY_THRESHOLD：Bucket中链表长度大于该默认值，转化为红黑树: 8  
+  UNTREEIFY_THRESHOLD：当Bucket上的结点数小于这个值时树转链表: 6  
+  MIN_TREEIFY_CAPACITY：桶中的Node被树化时最小的Bucket表容量: 64
 4. 关于红黑树
  - [红黑树与AVL树，各自的优缺点总结](https://www.jianshu.com/p/37436ed14cc6)
  - [二叉搜索树BST,AVL,红黑树,伸展树](https://blog.csdn.net/Holmofy/article/details/79692613)
