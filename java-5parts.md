@@ -32,7 +32,10 @@
 
 ## List ##
 
+![img](https://tva1.sinaimg.cn/large/007S8ZIlly1gi9ou0gg29j30k20eejs5.jpg)
+
 ### ArrayList ###
+
 0. 参考资料
  - [Java集合源码分析](https://www.cnblogs.com/xujian2014/tag/Java%E9%9B%86%E5%90%88%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/)
 
@@ -302,7 +305,7 @@ final Node<K,V>[] resize() {
 }
  ```
  - jdk7底层结构只有：**数组 + 链表**；jdk8中底层结构：**数组 + 链表 + 红黑树**。  
- - 形成链表时，**七上八下**（jdk7:新的元素指向旧的元素, jdk8：旧的元素指向新的元素）
+ - 形成链表时，**七上八下**（jdk7：新的元素指向旧的元素， jdk8：旧的元素指向新的元素）
  ```java
 if ((e = p.next) == null) {
     p.next = newNode(hash, key, value, null);
