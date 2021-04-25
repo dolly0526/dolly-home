@@ -3,11 +3,11 @@
 
 ## 参考资料
 
-- [岑玉海 - Spark源码系列](https://www.cnblogs.com/cenyuhai/tag/Spark源码系列/)
-- [岑玉海 - Spark](https://www.cnblogs.com/cenyuhai/tag/Spark/) 
+- [岑玉海 - Spark](https://cloud.tencent.com/developer/column/1908/tag-10682) 
 - [有态度的HBase/Spark/BigData - Spark](http://hbasefly.com/category/spark/)
 
 ## Spark Core ##
+
 ### 小故事  
 
 ![](https://i.imgur.com/uGo3gu9.png)
@@ -16,7 +16,7 @@
 
 0. 参考资料
 
-- [Spark源码系列（二）RDD详解](https://www.cnblogs.com/cenyuhai/p/3779125.html)
+- [Spark源码系列（二）RDD详解](https://cloud.tencent.com/developer/article/1047452)
 
 2. RDD的理解  
 ![](https://i.imgur.com/7QDYWjB.png)
@@ -30,7 +30,7 @@ RDD表示只读的分区的数据集，对RDD进行改动，只能通过RDD的�
 ### groupByKey和reduceByKey
 
  - 参考: [reduceByKey和groupByKey区别与用法](https://blog.csdn.net/weixin_41804049/article/details/80373741)
- - groupByKey: groupByKey 也是对每个 key 进行操作，但只生成一个 sequence。
+ - groupByKey：groupByKey 也是对每个 key 进行操作，但只生成一个 sequence
 
 ```scala
   /**
@@ -123,8 +123,8 @@ bin/spark-submit \
 
 0. 参考资料
 
-- [Spark源码系列（一）spark-submit提交作业过程](https://www.cnblogs.com/cenyuhai/p/3775687.html)
-- [Spark源码系列（七）Spark on yarn具体实现](https://www.cnblogs.com/cenyuhai/p/3834894.html)
+- [Spark源码系列（一）spark-submit提交作业过程](https://cloud.tencent.com/developer/article/1047448)
+- [Spark源码系列（七）Spark on yarn具体实现](https://cloud.tencent.com/developer/article/1047473)
 
 1. Spark源码中特殊的类
  - Backend: 后台
@@ -274,7 +274,7 @@ bin/spark-submit \
 
 0. 参考资料
 
-- [Spark源码系列（三）作业运行过程](https://www.cnblogs.com/cenyuhai/p/3784602.html)
+- [Spark源码系列（三）作业运行过程](https://cloud.tencent.com/developer/article/1047455)
 
 1. WordCount
  - 图解  
@@ -346,7 +346,7 @@ Job由saveAsTextFile触发，该Job由RDD-3和saveAsTextFile方法组成，根�
 0. 参考资料
 
 - 《尚硅谷大数据技术之Spark内核解析》
-- [Spark源码系列（六）Shuffle的过程解析](https://www.cnblogs.com/cenyuhai/p/3826227.html)
+- [Spark源码系列（六）Shuffle的过程解析](https://cloud.tencent.com/developer/article/1047467)
 
 1. Spark-2.x源码
 
@@ -440,7 +440,7 @@ private[spark] object SortShuffleWriter {
 ## 内存管理
 
 - 《尚硅谷大数据技术之Spark内核解析》
-- [Spark源码系列（五）分布式缓存](https://www.cnblogs.com/cenyuhai/p/3808774.html)
+- [Spark源码系列（五）分布式缓存](https://cloud.tencent.com/developer/article/1047463)
 
 ### OOM
 
@@ -451,17 +451,9 @@ private[spark] object SortShuffleWriter {
 ## Spark SQL
 
 - [SparkSQL – 从0到1认识Catalyst](http://hbasefly.com/2017/03/01/sparksql-catalyst/)
-- [Spark源码系列（九）Spark SQL初体验之解析过程详解](https://www.cnblogs.com/cenyuhai/p/4133319.html)
+- [Spark源码系列（九）Spark SQL初体验之解析过程详解](https://cloud.tencent.com/developer/article/1047470)
 
 ### Join
 
 - [SparkSQL – 有必要坐下来聊聊Join](http://hbasefly.com/2017/03/19/sparksql-basic-join/)
-
-## Spark Streaming ##
-
-- [Spark源码系列（八）Spark Streaming实例分析](https://www.cnblogs.com/cenyuhai/p/3841000.html)
-
-### Spark Streaming + Kafka ###
-
-- [Spark踩坑记——Spark Streaming+Kafka](https://www.cnblogs.com/xlturing/p/6246538.html)
 

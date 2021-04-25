@@ -3,13 +3,12 @@
 
 ## 参考资料 ##
 - [有态度的HBase/Spark/BigData - HBase](http://hbasefly.com/?vilqlm=bnem43&xgrony=vo0822)  
-- [岑玉海 - hbase源码系列](https://www.cnblogs.com/cenyuhai/tag/hbase%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/) 
-- [岑玉海 - hbase](https://www.cnblogs.com/cenyuhai/tag/hbase/)
--  [Openinx Blog](http://openinx.github.io/)  
-- 《HBase原理与实践》
+- [Openinx Blog](http://openinx.github.io/)
+- [岑玉海 - hbase](https://cloud.tencent.com/developer/column/1908/tag-10824)
 - 《HBase不睡觉书》
 
 ## 存储架构 ##
+
 ![](https://i.imgur.com/CUXyzuj.png)
 
 ## 存储模型 ##
@@ -17,9 +16,9 @@
 
 ## 写流程 ##
 
-- [HBase － 数据写入流程解析](http://hbasefly.com/2016/03/23/hbase_writer/): HBase-1.x版本的写流程中, 某次补丁对"写HLog"的优化
+- [HBase － 数据写入流程解析](http://hbasefly.com/2016/03/23/hbase_writer/)：HBase-1.x版本的写流程中，某次补丁对"写HLog"的优化
 - [HBase最佳实践－写性能优化策略](http://hbasefly.com/2016/12/10/hbase-parctice-write/)
-- [hbase源码系列（十一）Put、Delete在服务端是如何处理？](https://www.cnblogs.com/cenyuhai/p/3733445.html)
+- [hbase源码系列（十一）Put、Delete在服务端是如何处理？](https://cloud.tencent.com/developer/article/1048107)
 
 ![](https://i.imgur.com/dTfHM1P.png)  
 1）Client 先访问 zookeeper，获取 hbase:meta 表位于哪个 Region Server。  
@@ -576,8 +575,8 @@ package org.apache.hadoop.hbase.regionserver.HRegion;
 - [HBase原理－迟到的‘数据读取流程’部分细节](http://hbasefly.com/2017/06/11/hbase-scan-2/)
 - [HBase最佳实践 – Scan用法大观园](http://hbasefly.com/2017/10/29/hbase-scan-3/)
 - [HBase最佳实践－读性能优化策略](http://hbasefly.com/2016/11/11/hbase%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5%ef%bc%8d%e8%af%bb%e6%80%a7%e8%83%bd%e4%bc%98%e5%8c%96%e7%ad%96%e7%95%a5/)
-- [hbase源码系列（十二）Get、Scan在服务端是如何处理？](https://www.cnblogs.com/cenyuhai/p/3734512.html)
-- [hbase源码系列（十五）终结篇&Scan续集-->如何查询出来下一个KeyValue](https://www.cnblogs.com/cenyuhai/p/3751662.html)
+- [hbase源码系列（十二）Get、Scan在服务端是如何处理？](https://cloud.tencent.com/developer/article/1048112)
+- [hbase源码系列（十五）终结篇&Scan续集-->如何查询出来下一个KeyValue](https://cloud.tencent.com/developer/article/1047866)
 
 ![](https://i.imgur.com/rlOHKlj.png)  
 1）Client 先访问 zookeeper，获取 hbase:meta 表位于哪个 Region Server。  
@@ -1205,7 +1204,7 @@ package org.apache.hadoop.hbase.regionserver.compactions.RatioBasedCompactionPol
 
 0. 参考资料  
 - [HBase原理 – 所有Region切分的细节都在这里了](http://hbasefly.com/2017/08/27/hbase-split/)
-- [hbase源码系列（十四）Compact和Split](https://www.cnblogs.com/cenyuhai/p/3746473.html)
+- [hbase源码系列（十四）Compact和Split](https://cloud.tencent.com/developer/article/1048004)
 
 1. 默认情况下，每个 Table 起初只有一个 Region，随着数据的不断写入，Region 会自动进行拆分。刚拆分时，两个子 Region 都位于当前的 Region Server，但处于负载均衡的考虑，HMaster 有可能会将某个 Region 转移给其他的 Region Server。  
    Region Split 时机：  
@@ -1291,5 +1290,6 @@ d. 时间戳反转
 1. CMS失效  
 ![](https://i.imgur.com/wrEQ8uC.png)
 2. 调优经验
-- HBase 操作过程中需要大量的内存开销，毕竟 Table 是可以缓存在内存中的，一般会分配整个可用内存的 70%给 HBase 的 Java 堆。但是不建议分配非常大的堆内存，因为 FGC 过程持续太久会导致 RegionServer 处于长期不可用状态，一般 16~48G 内存就可以了，如果因为框架占用内存过高导致系统内存不足，框架一样会被系统服务拖死。
-- RegionServer内存大于32GB，建议使用G1GC策略; 一般情况ParallelGC + CMS即可
+- HBase 操作过程中需要大量的内存开销，毕竟 Table 是可以缓存在内存中的，一般会分配整个可用内存的 70% 给 HBase 的 Java 堆。但是不建议分配非常大的堆内存，因为 FGC 过程持续太久会导致 RegionServer 处于长期不可用状态，一般 16~48G 内存就可以了，如果因为框架占用内存过高导致系统内存不足，框架一样会被系统服务拖死。
+- RegionServer内存大于32GB，建议使用G1GC策略；一般情况ParallelGC + CMS即可
+
