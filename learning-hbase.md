@@ -848,7 +848,7 @@ package org.apache.hadoop.hbase.regionserver.HRegion;
    ![](https://i.imgur.com/MWu3rbJ.png)
 2. MultiVersionConcurrencyControl
 
-- 参考: [HBase MVCC实现流程](https://www.jianshu.com/p/86246d8bee24)
+- 参考: [数据库事务系列－HBase行级事务模型](http://hbasefly.com/2017/07/26/transaction-2/)
 - HBase-1.x源码
 
 ```java
